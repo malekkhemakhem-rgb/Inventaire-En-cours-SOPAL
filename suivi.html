@@ -1,122 +1,141 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Suivi inventaire</title>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-th { background-color: #f0f0f0; }
-button { margin: 2px; padding: 4px 8px; cursor: pointer; }
-</style>
+  <meta charset="UTF-8">
+  <title>Suivi Inventaire</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #000; padding: 8px; text-align: center; }
+    th { background-color: #f0f0f0; }
+    button { margin: 2px; padding: 4px 8px; cursor: pointer; }
+    canvas { margin-top: 40px; }
+  </style>
 </head>
 <body>
 
 <h2>Suivi des fiches inventaire</h2>
 
+<!-- Bouton supprimer -->
 <button onclick="viderTout()">Vider toutes les fiches</button>
 
+<!-- Tableau -->
 <table>
-<thead>
-<tr>
-  <th>Atelier</th>
-  <th>Responsable</th>
-  <th>Poste</th>
-  <th>Date</th>
-  <th>Actions</th>
-</tr>
-</thead>
-<tbody id="table-fiches"></tbody>
+  <thead>
+    <tr>
+      <th>Atelier</th>
+      <th>Responsable</th>
+      <th>Poste</th>
+      <th>Date</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="table-fiches"></tbody>
 </table>
 
+<hr>
+
+<h2>📊 Diagramme : Nombre de lignes saisies par responsable</h2>
+<canvas id="barChart" width="600" height="250"></canvas>
+
 <script>
-// ===== Firebase setup =====
+/* -----------------------------
+    🔥 Firebase CONFIG
+------------------------------*/
 const firebaseConfig = {
-  apiKey: "VOTRE_API_KEY",
-  authDomain: "VOTRE_PROJECT.firebaseapp.com",
-  databaseURL: "https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "inventaire-10c24",
-  storageBucket: "inventaire-10c24.appspot.com",
-  messagingSenderId: "SENDER_ID",
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "000000000",
   appId: "APP_ID"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const fichesRef = db.ref('fiches');
 
+/* -----------------------------
+    🧹 Fonction : vider tout
+------------------------------*/
+function viderTout() {
+  if (confirm("Supprimer toutes les fiches ?")) {
+      db.ref("inventaire").remove();
+      document.getElementById("table-fiches").innerHTML = "";
+      alert("Toutes les fiches ont été supprimées !");
+  }
+}
+
+/* -----------------------------
+    📥 Chargement des fiches
+------------------------------*/
 const tbody = document.getElementById("table-fiches");
 
-// ===== Fonction vider toutes les fiches =====
-function viderTout() {
-  if(confirm("Voulez-vous vraiment supprimer toutes les fiches ?")) {
-    fichesRef.remove()
-      .then(() => alert("Toutes les fiches ont été supprimées !"))
-      .catch(err => alert("Erreur : " + err));
-  }
-}
+db.ref("inventaire").on("value", snap => {
+    tbody.innerHTML = "";
+    const data = snap.val() || {};
 
-// ===== Écoute Firebase pour mise à jour en temps réel =====
-fichesRef.on('value', snapshot => {
-  tbody.innerHTML = "";
-  const fiches = snapshot.val();
-  if(fiches) {
-    Object.keys(fiches).forEach((key, index) => {
-      const fiche = fiches[key];
-      const tr = document.createElement("tr");
+    // Pour graphe
+    const counts = {}; // responsable → nb de lignes
 
-      tr.innerHTML = `
-        <td>${fiche.atelier}</td>
-        <td>${fiche.responsable}</td>
-        <td>${fiche.poste}</td>
-        <td>${fiche.date}</td>
-        <td>
-          <button onclick="voirFiche('${key}')">Voir</button>
-          <button onclick="telechargerExcel('${key}')">Télécharger Excel</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
+    Object.keys(data).forEach(id => {
+        const fiche = data[id];
+
+        // calcul lignes pour diagramme
+        const nb = fiche.inventaire ? fiche.inventaire.length : 0;
+        counts[fiche.responsable] = (counts[fiche.responsable] || 0) + nb;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${fiche.atelier || ""}</td>
+            <td>${fiche.responsable || ""}</td>
+            <td>${fiche.poste || ""}</td>
+            <td>${fiche.date || ""}</td>
+            <td>
+                <button onclick="voir('${id}')">Voir</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
-  }
+
+    // Mise à jour graphe
+    updateChart(counts);
 });
 
-// ===== Voir fiche dans fiche.html =====
-function voirFiche(key) {
-  localStorage.setItem("fiche_view_key", key);
-  window.location.href = "fiche.html"; // ta page fiche à créer
+/* -----------------------------
+    👁️ Voir fiche
+------------------------------*/
+function voir(id) {
+    localStorage.setItem("fiche_view_id", id);
+    window.location.href = "fiche.html";
 }
 
-// ===== Télécharger la fiche en Excel =====
-function telechargerExcel(key) {
-  fichesRef.child(key).get().then(snapshot => {
-    const fiche = snapshot.val();
-    if(!fiche || !fiche.inventaire || fiche.inventaire.length === 0) {
-      alert("Aucune donnée d'inventaire pour cette fiche !");
-      return;
-    }
+/* -----------------------------
+    📊 GRAPHIQUE BARRES
+------------------------------*/
+let chart = null;
 
-    // Préparer les données Excel
-    const excelData = fiche.inventaire.map(ligne => ({
-      Lot: ligne.lot || "",
-      Emplacement: ligne.emplacement || "",
-      "Code + Version": ligne.codeVersion || "",
-      Désignation: ligne.designation || "",
-      "OF de destination": ligne.ofDest || "",
-      Quantité: ligne.quantite || "",
-      Unité: ligne.unite || "",
-      Remarque: ligne.remarque || ""
-    }));
+function updateChart(counts) {
+    const labels = Object.keys(counts);
+    const values = Object.values(counts);
 
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+    if (chart) chart.destroy(); // éviter superposition
 
-    const nom = `Inventaire_${fiche.atelier}_${fiche.responsable.replace(/ /g, "_")}.xlsx`;
-    XLSX.writeFile(wb, nom);
-  }).catch(err => alert("Erreur téléchargement : "+err));
+    const ctx = document.getElementById("barChart");
+
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Nombre de lignes saisies",
+                data: values
+            }]
+        }
+    });
 }
 </script>
 
