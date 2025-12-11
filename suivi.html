@@ -1,26 +1,17 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <title>Suivi inventaire</title>
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-<!-- Excel -->
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
-<!-- Chart.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 table { border-collapse: collapse; width: 100%; margin-top: 20px; }
 th, td { border: 1px solid #000; padding: 8px; text-align: center; }
 th { background-color: #f0f0f0; }
 button { margin: 2px; padding: 4px 8px; cursor: pointer; }
-canvas { margin-top: 40px; }
 </style>
 </head>
 <body>
@@ -41,11 +32,6 @@ canvas { margin-top: 40px; }
 </thead>
 <tbody id="table-fiches"></tbody>
 </table>
-
-<hr>
-
-<h2>📊 Nombre de lignes saisies par responsable</h2>
-<canvas id="barChart" width="600" height="250"></canvas>
 
 <script>
 // ===== Firebase setup =====
@@ -73,27 +59,15 @@ function viderTout() {
   }
 }
 
-// ===== Variables du graphique =====
-let chart = null;
-
 // ===== Écoute Firebase pour mise à jour en temps réel =====
 fichesRef.on('value', snapshot => {
   tbody.innerHTML = "";
   const fiches = snapshot.val();
-
-  // compteur par responsable
-  const counts = {}; // responsable -> total lignes
-
   if(fiches) {
-    Object.keys(fiches).forEach((key) => {
+    Object.keys(fiches).forEach((key, index) => {
       const fiche = fiches[key];
-
-      // ------ Nombre de lignes saisies ------
-      const nb = fiche.inventaire ? fiche.inventaire.length : 0;
-      counts[fiche.responsable] = (counts[fiche.responsable] || 0) + nb;
-
-      // ------ Ligne du tableau ------
       const tr = document.createElement("tr");
+
       tr.innerHTML = `
         <td>${fiche.atelier}</td>
         <td>${fiche.responsable}</td>
@@ -107,15 +81,12 @@ fichesRef.on('value', snapshot => {
       tbody.appendChild(tr);
     });
   }
-
-  // Mise à jour du diagramme
-  updateChart(counts);
 });
 
 // ===== Voir fiche dans fiche.html =====
 function voirFiche(key) {
   localStorage.setItem("fiche_view_key", key);
-  window.location.href = "fiche.html"; 
+  window.location.href = "fiche.html"; // ta page fiche à créer
 }
 
 // ===== Télécharger la fiche en Excel =====
@@ -127,6 +98,7 @@ function telechargerExcel(key) {
       return;
     }
 
+    // Préparer les données Excel
     const excelData = fiche.inventaire.map(ligne => ({
       Lot: ligne.lot || "",
       Emplacement: ligne.emplacement || "",
@@ -141,30 +113,10 @@ function telechargerExcel(key) {
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+
     const nom = `Inventaire_${fiche.atelier}_${fiche.responsable.replace(/ /g, "_")}.xlsx`;
     XLSX.writeFile(wb, nom);
   }).catch(err => alert("Erreur téléchargement : "+err));
-}
-
-/* 🎨 ======= Mise à jour du diagramme ======= */
-function updateChart(counts) {
-  const labels = Object.keys(counts);
-  const values = Object.values(counts);
-
-  if (chart) chart.destroy();
-
-  const ctx = document.getElementById("barChart");
-
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "Lignes saisies",
-        data: values
-      }]
-    }
-  });
 }
 </script>
 
