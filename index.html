@@ -9,27 +9,19 @@
 <script src="postConsoCodes.js"></script>
 <script src="stockEncoursData.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <style>
-/* ====================== Styles inchangés ====================== */
 @font-face { font-family: 'Arial Narrow'; src: local('Arial Narrow'), local('ArialNarrow'); }
 body { font-family: 'Arial Narrow', Arial, sans-serif; margin: 10px; }
-
 .header { display: flex; justify-content: space-between; align-items: center; border: 1px solid black; padding: 10px; }
 .logo { font-weight: bold; font-size: 22px; }
 .title-block { text-align: center; flex: 1; }
 .title-block h3 { margin: 0; }
 .section { margin-top: 10px; }
-
 table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
 th, td { border: 2px solid black; padding: 6px; font-size: 14px; text-align: center; word-wrap: break-word; font-family: 'Arial Narrow', Arial, sans-serif; }
 th { background-color: white; color: black; font-weight: bold; }
-
-/* Largeurs spécifiques */
 /* Largeurs spécifiques */
 th:nth-child(1), td:nth-child(1) { width: 6%; }   /* Lot */
 th:nth-child(5), td:nth-child(5) { width: 10%; }   /* Quantité */
@@ -39,33 +31,32 @@ th:nth-child(4), td:nth-child(4) { width: 25%; }
 
 input[type="text"], input[type="number"]{ width:100%; height:100%; border:none; background:transparent; text-transform:uppercase; text-align:center; font-size:14px; padding:0; margin:0; box-sizing:border-box; outline:none; }
 select{ width:100%; height:100%; border:none; background:transparent; text-align:center; font-size:14px; padding:0; margin:0; box-sizing:border-box; outline:none; }
-
 .add-button,.delete-button{ font-size:18px; border:none; padding:4px 10px; cursor:pointer; border-radius:4px; }
 .add-button{ background:#28a745; color:#fff; }
 .add-button:disabled{ background:grey; cursor:not-allowed; }
 .add-button:hover:not(:disabled){ background:#218838; }
 .delete-button{ background:#dc3545; color:#fff; margin-left:5px; }
 .delete-button:hover{ background:#c82333; }
-
 .error{ background:#fdd; color:red; }
 .hidden{ display:none; }
 .warning-text{ color:red; font-weight:bold; }
-
 .footer-code{ text-align:right; font-size:12px; margin-top:10px; }
 .container{ border:1.5px solid black; padding:20px; font-family:"Times New Roman", Times, serif; }
 .title-block,.section,.checkboxes label,.header,h3,strong,label{ font-family:'Arial Narrow', Arial, sans-serif; }
-
 .screen-only, .print-only { display: table-cell; }
-@media print { .no-print, .add-button, .delete-button { display: none !important; } }
+@media print {
+  .remarque-header, .remarque-cell, .no-print { display: none !important; }
+  .print-only { display: table-cell !important; }
+  .screen-only { display: none !important; }
+}
 </style>
 </head>
 <body>
+
 <div class="container">
 
 <div class="header">
-  <div class="logo">
-    <img src="image.png" alt="Groupe SOPAL" style="height: 32px;">
-  </div>
+  <div class="logo"><img src="image.png" alt="Groupe SOPAL" style="height:32px;"></div>
   <div class="title-block">
     <h3>Fiche d’inventaire des encours/Atelier</h3>
     Année : <input type="text" style="width:80px;"> &nbsp;&nbsp; Page : <input type="text" style="width:30px;">
@@ -73,7 +64,7 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 </div>
 
 <div class="section">
-<strong>Atelier :</strong> 
+<strong>Atelier :</strong>
 <input list="listeAteliers" id="atelier" style="width:150px;" required>
 <datalist id="listeAteliers">
   <option value="03"><option value="05"><option value="06"><option value="07">
@@ -81,29 +72,38 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
   <option value="16"><option value="17"><option value="19"><option value="21">
   <option value="22"><option value="23"><option value="24">
 </datalist>
-
-&nbsp;&nbsp;<strong>Responsable d’inventaire :</strong> 
+&nbsp;&nbsp;<strong>Responsable d’inventaire :</strong>
 <input type="text" id="responsable" style="width:250px;" readonly required>
-
-&nbsp;&nbsp;<strong>Poste de travail :</strong> 
+&nbsp;&nbsp;<strong>Poste de travail :</strong>
 <input type="text" id="poste" style="width:150px;" required>
 </div>
 
 <script>
-// ====================== Atelier -> Responsable ======================
+// Atelier -> Responsable
 const ateliersResponsables = {
-  "03": ["Achraf AKROUT"], "05": ["Wassim JARRAYA"], "06": ["Ali CHAARI"],
-  "07": ["Abderrazek REGAYEG"], "08": ["Amine KAMMOUN"], "09": ["Mohamed FRIKHA"],
-  "11": ["Ahmed TURKI"], "13": ["Abdellah BOUAZIZ"], "16": ["Abdessalem Ben Elhadj"],
-  "17": ["Seifeddine KRIAA"], "19": ["Tarek LOUATI"], "21": ["Majed FESSI"],
-  "22": ["Majed FESSI"], "23": ["Majed FESSI"], "24": ["Majed FESSI"]
+  "03":["Achraf AKROUT"],"05":["Wassim JARRAYA"],"06":["Ali CHAARI"],
+  "07":["Abderrazek REGAYEG"],"08":["Amine KAMMOUN"],"09":["Mohamed FRIKHA"],
+  "11":["Ahmed TURKI"],"13":["Abdellah BOUAZIZ"],"16":["Abdessalem Ben Elhadj"],
+  "17":["Seifeddine KRIAA"],"19":["Tarek LOUATI"],"21":["Majed FESSI"],
+  "22":["Majed FESSI"],"23":["Majed FESSI"],"24":["Majed FESSI"]
 };
-const atelierInput = document.getElementById("atelier");
-const responsableInput = document.getElementById("responsable");
-atelierInput.addEventListener("input", ()=>{
-  const selected = atelierInput.value;
-  responsableInput.value = ateliersResponsables[selected]?.[0] || "";
-});
+const atelierInput=document.getElementById("atelier");
+const responsableInput=document.getElementById("responsable");
+atelierInput.addEventListener("input",()=>{responsableInput.value=ateliersResponsables[atelierInput.value]?.[0]||"";});
+
+// ===== Firebase setup =====
+const firebaseConfig = {
+  apiKey: "VOTRE_API_KEY",
+  authDomain: "VOTRE_PROJECT.firebaseapp.com",
+  databaseURL: "https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "inventaire-10c24",
+  storageBucket: "inventaire-10c24.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const fichesRef = db.ref('fiches');
 </script>
 
 <div class="section checkboxes">
@@ -158,68 +158,97 @@ atelierInput.addEventListener("input", ()=>{
 </table>
 
 <div class="no-print">
-  <button class="print-button" onclick="window.print()" style="margin-top: 2cm;">🖨️ Imprimer la fiche</button>
-  <button onclick="telechargerExcel()" style="margin-top: 10px;">📊 Télécharger Excel</button>
-  <button id="save-button"> 💾Enregistrer</button>
-  <button onclick="Suivi()"> 👁️Suivi</button>
+  <button class="print-button" onclick="window.print()" style="margin-top:2cm;">🖨️ Imprimer la fiche</button>
+  <button onclick="telechargerExcel()" style="margin-top:10px;">📊 Télécharger Excel</button>
+  <button id="save-button">💾 Enregistrer</button>
+  <button onclick="Suivi()">👁️Suivi</button>
 </div>
 
 </div>
 <div class="footer-code">INT51FE13.2</div>
 
 <script>
-// ====================== Fonctions inchangées ======================
-function updateRemarqueVisibility(){ const anyVisible=[...document.querySelectorAll('.remarque-cell .warning-text')].some(span=>span && span.textContent.trim()!==''); document.querySelectorAll('.remarque-header').forEach(th=>th.classList.toggle('hidden',!anyVisible)); document.querySelectorAll('.remarque-cell').forEach(td=>td.classList.toggle('hidden',!anyVisible)); }
+// ===== Fonctions principales =====
+function updateRemarqueVisibility() {
+  const anyVisible = [...document.querySelectorAll('.remarque-cell .warning-text')]
+      .some(span=>span&&span.textContent.trim()!=='');
+  document.querySelectorAll('.remarque-header').forEach(th=>th.classList.toggle('hidden',!anyVisible));
+  document.querySelectorAll('.remarque-cell').forEach(td=>td.classList.toggle('hidden',!anyVisible));
+}
 
 function handleCodeKey(event,input){
   const row=input.closest("tr");
-  const codeVer=input.value.trim().toUpperCase();
-  input.value=codeVer;
+  const code=input.value.trim().toUpperCase();
+  input.value=code;
   const designationInput=row.cells[3].querySelector('input');
   const ofInput=row.cells[4].querySelector('input');
   const addButton=row.querySelector(".add-button");
 
-  if(codeDict[codeVer]){
-    designationInput.value=codeDict[codeVer].designation||codeDict[codeVer];
+  if(codeDict[code]){
+    const data=codeDict[code];
+    designationInput.value=data.designation||data;
     designationInput.classList.remove("error");
     input.classList.remove("error");
 
-    if(postConsoCodes.includes(codeVer)){
+    if(postConsoCodes.includes(code)){
       ofInput.value="Article non inventorier";
       addButton.disabled=true;
       row.querySelectorAll("input").forEach((inp,i)=>{if(i!==2) inp.disabled=true;});
-    } else { addButton.disabled=false; ofInput.disabled=false; }
-  } else { designationInput.value="Code inconnu"; designationInput.classList.add("error"); input.classList.add("error"); addButton.disabled=true; }
+    } else {
+      addButton.disabled=false;
+      ofInput.disabled=false;
+    }
+  } else {
+    designationInput.value="Code inconnu";
+    designationInput.classList.add("error");
+    input.classList.add("error");
+    addButton.disabled=true;
+  }
 }
 
 function handleOFKey(event,input){
   const row=input.closest("tr");
-  const codeVerInput=row.cells[2].querySelector('input');
-  const codeVer=codeVerInput.value.trim().toUpperCase();
+  const codeInput=row.cells[2].querySelector('input');
+  const code=codeInput.value.trim().toUpperCase();
   const of=input.value.trim().toUpperCase();
   input.value=of;
   const addButton=row.querySelector(".add-button");
   const remarqueSpan=row.querySelector(".warning-text");
 
-  if(postConsoCodes.includes(codeVer)){
-    input.value="Article non inventorier"; addButton.disabled=true; return;
+  if(postConsoCodes.includes(code)){
+    input.value="Article non inventorier";
+    addButton.disabled=true;
+    return;
   }
 
-  const isExactMatch=codeOFDict[codeVer]?.includes(of);
-  const isOFInSecondaire=codeOFDictSecondaire[codeVer]?.includes(of);
-  const encoursKey=codeVer+"|"+of;
+  const isExactMatch=codeOFDict[code]?.includes(of);
+  const isOFInSecondaire=codeOFDictSecondaire[code]?.includes(of);
+  const encoursKey=code+"|"+of;
   const isInEncours=stockEncoursData.hasOwnProperty(encoursKey);
   const isValid=isExactMatch||isOFInSecondaire||isInEncours;
 
-  if(stockEncoursData[encoursKey]!==undefined && stockEncoursData[encoursKey]<0){
+  if(stockEncoursData[encoursKey]!==undefined&&stockEncoursData[encoursKey]<0){
     remarqueSpan.textContent="⚠️ manque saisie MAG";
     remarqueSpan.classList.remove("hidden");
-  } else { remarqueSpan.textContent=""; remarqueSpan.classList.add("hidden"); }
+  } else {
+    remarqueSpan.textContent="";
+    remarqueSpan.classList.add("hidden");
+  }
 
   updateRemarqueVisibility();
 
-  if(isValid){ input.classList.remove("error"); codeVerInput.classList.remove("error"); addButton.disabled=false; row.querySelectorAll("input").forEach(inp=>inp.disabled=false); }
-  else { input.classList.add("error"); codeVerInput.classList.add("error"); alert("OF ne correspond pas au code"); addButton.disabled=true; row.querySelectorAll("input").forEach((inp,i)=>{if(i!==2 && i!==4) inp.disabled=true;}); }
+  if(isValid){
+    input.classList.remove("error");
+    codeInput.classList.remove("error");
+    addButton.disabled=false;
+    row.querySelectorAll("input").forEach(inp=>inp.disabled=false);
+  } else {
+    input.classList.add("error");
+    codeInput.classList.add("error");
+    alert("OF ne correspond pas au code");
+    addButton.disabled=true;
+    row.querySelectorAll("input").forEach((inp,i)=>{if(i!==2&&i!==4) inp.disabled=true;});
+  }
 }
 
 function ajouterLigne(bouton){
@@ -231,13 +260,13 @@ function ajouterLigne(bouton){
   nouvelleLigne.querySelector(".warning-text").textContent="";
   nouvelleLigne.querySelector(".warning-text").classList.add("hidden");
   nouvelleLigne.querySelector(".add-button").disabled=true;
-  ligne.parentNode.insertBefore(nouvelleLigne, ligne.nextSibling);
+  ligne.parentNode.insertBefore(nouvelleLigne,ligne.nextSibling);
   updateRemarqueVisibility();
 }
 
 function supprimerContenuLigne(bouton){
   const ligne=bouton.closest("tr");
-  ligne.querySelectorAll("input").forEach(input=>{input.value=""; input.classList.remove("error"); input.disabled=false;});
+  ligne.querySelectorAll("input").forEach(input=>{input.value=""; input.disabled=false; input.classList.remove("error");});
   ligne.querySelector("select").selectedIndex=0;
   ligne.querySelector("select").disabled=false;
   ligne.querySelector(".warning-text").textContent="";
@@ -252,36 +281,27 @@ function telechargerExcel(){
   const responsable=document.getElementById('responsable').value||"Responsable";
   let wb=XLSX.utils.book_new();
   wb.Props={ Title:"Fiche d'inventaire", Subject:"Inventaire SOPAL", Author:"SOPAL", CreatedDate:new Date() };
-
   let data=[];
   const headers=[];
   table.querySelectorAll("thead th").forEach(th=>headers.push(th.innerText.trim()));
   data.push(headers);
-
   table.querySelectorAll("tbody tr").forEach(tr=>{
     const row=[];
     tr.querySelectorAll("td").forEach(td=>{
-      const input=td.querySelector("input, select, span");
-      if(input){ row.push(input.value || input.textContent || ""); } else { row.push(td.innerText.trim()); }
+      const input=td.querySelector("input, select");
+      row.push(input?input.value:td.innerText.trim());
     });
     data.push(row);
   });
-
   const ws=XLSX.utils.aoa_to_sheet(data);
   XLSX.utils.book_append_sheet(wb,ws,"Inventaire");
   XLSX.writeFile(wb,`Inventaire_${atelier}_${responsable}.xlsx`);
 }
 
-function Suivi(){ window.location.href="suivi.html"; }
-
-// ====================== Firebase ======================
-const db=firebase.database();
-
 document.getElementById('save-button').addEventListener('click',function(){
   const atelier=document.getElementById('atelier').value;
   const responsable=document.getElementById('responsable').value;
   const poste=document.getElementById('poste').value;
-
   if(!atelier||!responsable||!poste){ alert("Veuillez remplir tous les champs !"); return; }
 
   const table=document.getElementById('table-inventaire');
@@ -289,28 +309,25 @@ document.getElementById('save-button').addEventListener('click',function(){
   for(let i=1;i<table.rows.length;i++){
     const row=table.rows[i];
     inventaire.push({
-      lot: row.cells[0].querySelector('input')?.value || "",
-      emplacement: row.cells[1].querySelector('input')?.value || "",
-      codeVersion: row.cells[2].querySelector('input')?.value || "",
-      code: row.cells[3].querySelector('.code-out')?.textContent || "",
-      version: row.cells[4].querySelector('.ver-out')?.textContent || "",
-      designation: row.cells[5].querySelector('input')?.value || "",
-      ofDest: row.cells[6].querySelector('input')?.value || "",
-      quantite: row.cells[7].querySelector('input')?.value || "",
-      unite: row.cells[8].querySelector('select')?.value || "",
-      remarque: row.cells[9].querySelector('.warning-text')?.textContent || ""
+      lot: row.cells[0].querySelector('input')?.value||"",
+      emplacement: row.cells[1].querySelector('input')?.value||"",
+      codeVersion: row.cells[2].querySelector('input')?.value||"",
+      designation: row.cells[3].querySelector('input')?.value||"",
+      ofDest: row.cells[4].querySelector('input')?.value||"",
+      quantite: row.cells[5].querySelector('input')?.value||"",
+      unite: row.cells[6].querySelector('select')?.value||"",
+      remarque: row.cells[7].querySelector('.warning-text')?.textContent||""
     });
   }
 
   const fiche={atelier,responsable,poste,date:new Date().toLocaleString(),inventaire};
-
-  // 🔥 Stockage dans Firebase
-  const newRef=db.ref('fiches').push();
-  newRef.set(fiche, error=>{
-    if(error){ alert("Erreur lors de l'enregistrement : "+error); }
-    else{ alert("Fiche enregistrée dans Firebase !"); }
-  });
+  const newKey=fichesRef.push().key;
+  fichesRef.child(newKey).set(fiche)
+    .then(()=>alert("Fiche enregistrée !"))
+    .catch(err=>alert("Erreur enregistrement : "+err));
 });
+
+function Suivi(){ window.location.href="suivi.html"; }
 </script>
 
 </body>
