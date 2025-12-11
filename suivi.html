@@ -1,23 +1,20 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <title>Suivi inventaire</title>
-
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
-<!-- Chart.js pour le diagramme -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/4.4.1/chart.umd.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 table { border-collapse: collapse; width: 100%; margin-top: 20px; }
 th, td { border: 1px solid #000; padding: 8px; text-align: center; }
 th { background-color: #f0f0f0; }
 button { margin: 2px; padding: 4px 8px; cursor: pointer; }
-canvas { margin-top: 40px; }
+#chart-container { margin-top: 40px; width: 100%; max-width: 800px; }
+#chart-responsables { height: 400px; }
 </style>
 </head>
 <body>
@@ -39,8 +36,22 @@ canvas { margin-top: 40px; }
 <tbody id="table-fiches"></tbody>
 </table>
 
-<h2>📊 Diagramme : nombre de lignes par responsable</h2>
-<canvas id="barChart" width="600" height="240"></canvas>
+<div id="chart-container">
+  <canvas id="chart-responsables"></canvas>
+</div>
+<script>
+// Mot de passe pour accéder à la page
+const PASSWORD = "PLN2025"; // ← change ton mot de passe ici
+
+// Demander le mot de passe dès le chargement de la page
+window.addEventListener("load", () => {
+    let saisie = prompt("Veuillez entrer le mot de passe pour accéder à cette page :");
+    if (saisie !== PASSWORD) {
+        alert("Mot de passe incorrect ! Redirection vers la page d'accueil.");
+        window.location.href = "inv.html"; // ou une autre page de redirection
+    }
+});
+</script>
 
 <script>
 // ===== Firebase setup =====
@@ -68,84 +79,13 @@ function viderTout() {
   }
 }
 
-// ===== Diagramme =====
-let chart = null;
-<canvas id="barChart" width="800" height="400"></canvas>
-
-function updateChart(counts) {
-  const labels = Object.keys(counts);
-  const values = Object.values(counts);
-
-  if (chart) chart.destroy();
-
-  const ctx = document.getElementById("barChart").getContext("2d");
-
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: "Nombre de lignes saisies",
-        data: values,
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          precision: 0
-        }
-      }
-    }
-  });
-}
-
-
-// ===== Écoute Firebase pour mise à jour en temps réel =====
-fichesRef.on('value', snapshot => {
-  tbody.innerHTML = "";
-  const fiches = snapshot.val();
-  const counts = {};  // compteur de lignes par responsable
-
-  if(fiches) {
-    Object.keys(fiches).forEach(key => {
-      const fiche = fiches[key];
-
-      // ---- compteur lignes ----
-      const nb = fiche.inventaire ? fiche.inventaire.length : 0;
-      counts[fiche.responsable] = (counts[fiche.responsable] || 0) + nb;
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${fiche.atelier}</td>
-        <td>${fiche.responsable}</td>
-        <td>${fiche.poste}</td>
-        <td>${fiche.date}</td>
-        <td>
-          <button onclick="voirFiche('${key}')">Voir</button>
-          <button onclick="telechargerExcel('${key}')">Télécharger Excel</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // Mise à jour du graphique
-  updateChart(counts);
-});
-
-// ===== Voir fiche dans fiche.html =====
+// ===== Fonction voir fiche =====
 function voirFiche(key) {
   localStorage.setItem("fiche_view_key", key);
-  window.location.href = "fiche.html";
+  window.location.href = "fiche.html"; // page fiche à créer
 }
 
-// ===== Télécharger la fiche en Excel =====
+// ===== Télécharger la fiche Excel =====
 function telechargerExcel(key) {
   fichesRef.child(key).get().then(snapshot => {
     const fiche = snapshot.val();
@@ -173,7 +113,78 @@ function telechargerExcel(key) {
     XLSX.writeFile(wb, nom);
   }).catch(err => alert("Erreur téléchargement : "+err));
 }
-</script>
 
+// ===== Écoute Firebase pour mise à jour en temps réel =====
+fichesRef.on('value', snapshot => {
+  tbody.innerHTML = "";
+  const fiches = snapshot.val();
+  const compteResponsables = {}; // pour le diagramme
+  if(fiches) {
+    Object.keys(fiches).forEach(key => {
+      const fiche = fiches[key];
+      // remplir tableau
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${fiche.atelier}</td>
+        <td>${fiche.responsable}</td>
+        <td>${fiche.poste}</td>
+        <td>${fiche.date}</td>
+        <td>
+          <button onclick="voirFiche('${key}')">Voir</button>
+          <button onclick="telechargerExcel('${key}')">Télécharger Excel</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+
+      // compter lignes pour chaque responsable
+      compteResponsables[fiche.responsable] = (compteResponsables[fiche.responsable] || 0) + fiche.inventaire.length;
+    });
+  }
+  // ===== Diagramme =====
+  updateChart(compteResponsables);
+});
+
+// ===== Diagramme avec Chart.js =====
+let chartInstance = null;
+function updateChart(data) {
+  const ctx = document.getElementById('chart-responsables').getContext('2d');
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+
+  // ajuster hauteur du canvas en fonction du nombre de lignes (2cm par ligne)
+  const hauteurParLigne = 20; // px ≈ 2cm pour l'écran
+  const totalHeight = Math.max(hauteurParLigne * labels.length, 100);
+  document.getElementById('chart-responsables').height = totalHeight;
+
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Nombre de lignes saisies',
+        data: values,
+        backgroundColor: '#28a745'
+      }]
+    },
+     options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        title: {
+          display: true,
+          text: '📊 Nombre de lignes saisies par responsable',
+          font: { size: 20, weight: 'bold' }
+        }
+      },
+      scales: {
+        x: { beginAtZero: true, stepSize: 1 },
+        y: { ticks: { font: { size: 14 } } }
+      }
+    }
+  });
+}
+</script>
 </body>
 </html>

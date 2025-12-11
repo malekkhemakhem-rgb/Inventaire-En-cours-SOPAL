@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -161,6 +161,10 @@ const fichesRef = db.ref('fiches');
   <button class="print-button" onclick="window.print()" style="margin-top:2cm;">🖨️ Imprimer la fiche</button>
   <button onclick="telechargerExcel()" style="margin-top:10px;">📊 Télécharger Excel</button>
   <button id="save-button">💾 Enregistrer</button>
+</div>
+
+<!-- Bouton Suivi discret -->
+<div class="no-print" style="text-align:right; margin-top:5px;">
   <button onclick="Suivi()">👁️Suivi</button>
 </div>
 
@@ -172,6 +176,7 @@ const fichesRef = db.ref('fiches');
 function updateRemarqueVisibility() {
   const anyVisible = [...document.querySelectorAll('.remarque-cell .warning-text')]
       .some(span=>span&&span.textContent.trim()!=='');
+
   document.querySelectorAll('.remarque-header').forEach(th=>th.classList.toggle('hidden',!anyVisible));
   document.querySelectorAll('.remarque-cell').forEach(td=>td.classList.toggle('hidden',!anyVisible));
 }
