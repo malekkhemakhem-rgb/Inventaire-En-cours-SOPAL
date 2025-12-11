@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Suivi inventaire</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #000; padding: 8px; text-align: center; }
+    th { background-color: #f0f0f0; }
+    button { margin: 2px; padding: 4px 8px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<h2>Suivi des fiches inventaire</h2>
+
+<!-- Bouton pour vider toutes les fiches -->
+<button onclick="viderTout()">Vider toutes les fiches</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Atelier</th>
+      <th>Responsable</th>
+      <th>Poste</th>
+      <th>Date</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="table-fiches"></tbody>
+</table>
+
+<script>
+  // Fonction pour vider toutes les fiches
+  function viderTout() {
+      if (confirm("Voulez-vous vraiment supprimer toutes les fiches ?")) {
+          localStorage.removeItem("fiches");
+          document.getElementById("table-fiches").innerHTML = "";
+          alert("Toutes les fiches ont été supprimées !");
+      }
+  }
+
+  // Récupération des fiches depuis le localStorage
+  const tbody = document.getElementById("table-fiches");
+  const fiches = JSON.parse(localStorage.getItem("fiches") || "[]");
+
+  // Affichage des fiches
+  fiches.forEach((fiche, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+          <td>${fiche.atelier}</td>
+          <td>${fiche.responsable}</td>
+          <td>${fiche.poste}</td>
+          <td>${fiche.date}</td>
+          <td>
+              <button onclick="voirFiche(${index})">Voir</button>
+              <button onclick="telechargerExcel(${index})">Télécharger Excel</button>
+          </td>
+      `;
+      tbody.appendChild(tr);
+  });
+
+  // Fonction pour voir la fiche dans fiche.html
+  function voirFiche(index) {
+      localStorage.setItem("fiche_view_index", index);
+      window.location.href = "fiche.html"; // page à créer pour afficher la fiche
+  }
+
+  // Fonction pour télécharger la fiche en Excel
+  function telechargerExcel(index) {
+      const fiche = fiches[index];
+      if (!fiche.inventaire || fiche.inventaire.length === 0) {
+          alert("Aucune donnée d'inventaire pour cette fiche !");
+          return;
+      }
+
+      // Préparer les données pour Excel
+      const excelData = fiche.inventaire.map(ligne => ({
+          Lot: ligne.lot || "",
+          Emplacement: ligne.emplacement || "",
+          "Code + Version": ligne.codeVersion || "",
+          Code: ligne.code || "",
+          Version: ligne.version || "",
+          Désignation: ligne.designation || "",
+          "OF de destination": ligne.ofDest || "",
+          Quantité: ligne.quantite || "",
+          Unité: ligne.unite || "",
+          Remarque: ligne.remarque || ""
+      }));
+
+      // Création du fichier Excel
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
+
+      // Nom du fichier personnalisé
+      const nom = `Inventaire_${fiche.atelier}_${fiche.responsable.replace(/ /g, "_")}.xlsx`;
+      XLSX.writeFile(wb, nom);
+  }
+</script>
+
+</body>
+</html>
