@@ -70,6 +70,7 @@ function viderTout() {
 
 // ===== Diagramme =====
 let chart = null;
+<canvas id="barChart" width="800" height="400"></canvas>
 
 function updateChart(counts) {
   const labels = Object.keys(counts);
@@ -77,7 +78,7 @@ function updateChart(counts) {
 
   if (chart) chart.destroy();
 
-  const ctx = document.getElementById("barChart");
+  const ctx = document.getElementById("barChart").getContext("2d");
 
   chart = new Chart(ctx, {
     type: 'bar',
@@ -85,11 +86,25 @@ function updateChart(counts) {
       labels: labels,
       datasets: [{
         label: "Nombre de lignes saisies",
-        data: values
+        data: values,
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
       }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          precision: 0
+        }
+      }
     }
   });
 }
+
 
 // ===== Écoute Firebase pour mise à jour en temps réel =====
 fichesRef.on('value', snapshot => {
