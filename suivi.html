@@ -9,23 +9,86 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-th, td { border: 1px solid #000; padding: 8px; text-align: center; }
-th { background-color: #f0f0f0; }
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('images.JPG') no-repeat center center;
+  background-size: cover;
+  filter: blur(8px);
+  z-index: -1;
+}
+
+/* Bande titre bleu transparent */
+h2, h3 {
+  text-align: center;
+  color: #001f4d;
+  background: rgba(0,31,77,0.4);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* Tableau principal */
+#table-fiches { border-collapse: collapse; width: 100%; margin-top: 20px; }
+#table-fiches th, #table-fiches td { border: 1px solid #000; padding: 6px; text-align: center; background-color:#eee7e7; }
+
+/* Boutons */
 button { margin: 2px; padding: 4px 8px; cursor: pointer; }
-#chart-container { margin-top: 40px; width: 100%; max-width: 800px; }
-#chart-responsables { height: 400px; }
+
+/* Chart centré */
+#chart-container { display:flex; justify-content:center; margin-top:30px; }
+#chart-responsables { height:400px; width:700px; }
+
+/* Tableau final et bouton Télécharger tout */
+#atelier-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+#tableExcelAtelier { border-collapse: collapse; width:500px; }
+#tableExcelAtelier th, #tableExcelAtelier td { border:1px solid #000; padding:6px; text-align:center; }
+
+/* Titre bouton Télécharger tout */
+#download-title {
+  text-align: center;
+  color: #001f4d;
+  font-weight:bold;
+  margin-bottom:5px;
+ 
+  padding:5px;
+  border-radius:5px;
+}
+#download-button-container { display:flex; justify-content:center; width:100%; }
+
+/* Comparaison */
+#compare-title {
+  text-align: center;
+  background: rgba(0,31,77,0.4);
+  color: #001f4d;
+  padding:10px;
+  border-radius:8px;
+  width:100%;
+  margin-top:40px;
+}
+#resultCompareTable { width:100%; border-collapse: collapse; margin-top:20px; }
+#resultCompareTable th, #resultCompareTable td { border:1px solid #000; padding:6px; text-align:center; }
+#resultCompareTable th { background-color:#e6e6f5; font-weight:bold; }
 </style>
 </head>
 <body>
 
 <h2>Suivi des fiches inventaire</h2>
-
 <button onclick="viderTout()">Vider toutes les fiches</button>
 
-<table>
+<table id="table-fiches">
 <thead>
 <tr>
+  <th>Code Atelier</th>
   <th>Atelier</th>
   <th>Responsable</th>
   <th>Poste</th>
@@ -33,156 +96,226 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
   <th>Actions</th>
 </tr>
 </thead>
-<tbody id="table-fiches"></tbody>
+<tbody id="table-fiches-body"></tbody>
 </table>
 
 <div id="chart-container">
   <canvas id="chart-responsables"></canvas>
 </div>
-<script>
-// Mot de passe pour accéder à la page
-const PASSWORD = "PLN2025"; // ← change ton mot de passe ici
 
-// Demander le mot de passe dès le chargement de la page
-window.addEventListener("load", () => {
-    let saisie = prompt("Veuillez entrer le mot de passe pour accéder à cette page :");
-    if (saisie !== PASSWORD) {
-        alert("Mot de passe incorrect ! Redirection vers la page d'accueil.");
-        window.location.href = "inv.html"; // ou une autre page de redirection
-    }
+<h3>Fichiers finaux par atelier</h3>
+<div id="atelier-container">
+  <table id="tableExcelAtelier">
+    <thead>
+      <tr>
+        <th>Atelier</th>
+        <th>Télécharger</th>
+      </tr>
+    </thead>
+    <tbody id="excelAtelierBody"></tbody>
+  </table>
+  
+  <div id="download-title">Télécharger tous les ateliers</div>
+  <div id="download-button-container">
+    <button onclick="telechargerTout()" style="height:40px;">Télécharger tout</button>
+  </div>
+</div>
+
+<h2 id="compare-title">Comparaison Physique / Informatique</h2>
+<label>Fichier de référence :</label>
+<input type="file" id="fileRefCompare" accept=".xlsx,.xls"><br><br>
+<label>Fichier Télécharger tout :</label>
+<input type="file" id="fileCheckCompare" accept=".xlsx,.xls"><br><br>
+<button onclick="comparerFichiers()">Comparer et générer Excel</button><br><br>
+<button onclick="filtrerRouge()">Afficher seulement les lignes rouges</button>
+<button onclick="filtrerBlanc()">Afficher seulement les lignes trouvées</button>
+<button onclick="resetFiltre()">Réinitialiser filtre</button>
+
+<table id="resultCompareTable">
+<thead>
+<tr>
+  <th>Article</th>
+  <th>Atelier</th>
+  <th>OF</th>
+  <th>Dernier suivi</th>
+  <th>Existant ?</th>
+</tr>
+</thead>
+<tbody id="resultCompareBody"></tbody>
+</table>
+
+<script>
+// --- Comparaison ---
+let referenceData=[], checkData=[];
+function readExcel(file, callback){
+  const reader=new FileReader();
+  reader.onload=(evt)=>{
+    const workbook=XLSX.read(evt.target.result,{type:"array"});
+    const sheet=workbook.Sheets[workbook.SheetNames[0]];
+    callback(XLSX.utils.sheet_to_json(sheet,{defval:""}));
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('fileRefCompare').addEventListener('change',(e)=>{
+  if(e.target.files[0]) readExcel(e.target.files[0], data=>referenceData=data);
 });
-</script>
+document.getElementById('fileCheckCompare').addEventListener('change',(e)=>{
+  if(e.target.files[0]) readExcel(e.target.files[0], data=>checkData=data);
+});
 
-<script>
-// ===== Firebase setup =====
-const firebaseConfig = {
-  apiKey: "VOTRE_API_KEY",
-  authDomain: "VOTRE_PROJECT.firebaseapp.com",
-  databaseURL: "https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "inventaire-10c24",
-  storageBucket: "inventaire-10c24.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
+function comparerFichiers(){
+  if(referenceData.length===0 || checkData.length===0){ alert("Veuillez charger les deux fichiers !"); return; }
+  const tbody=document.getElementById("resultCompareBody");
+  tbody.innerHTML="";
+  const checkSet=new Set(checkData.map(row=>(row['Code + Version']||"")+"|"+(row['OF de destination']||"")));
+  const resultExcel=[];
+  referenceData.forEach(ref=>{
+    const article=ref['Code article'];
+    const of=ref['Numéro OF'];
+    const atelier=ref['Atelier'];
+    const dernierSuivi=ref['Dernier suivi'];
+    const key=article+"|"+of;
+    const existe=checkSet.has(key);
+    const tr=document.createElement("tr");
+    if(!existe) tr.style.backgroundColor="#ff9999";
+    [article,atelier,of,dernierSuivi,existe?"Existant":"Inexistant"].forEach(v=>{
+      const td=document.createElement("td");
+      td.textContent=v;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+    resultExcel.push({Article:article,Atelier:atelier,OF:of,'Dernier suivi':dernierSuivi,Existant:existe?"Existant":"Inexistant"});
+  });
+  const ws=XLSX.utils.json_to_sheet(resultExcel);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Comparaison");
+  XLSX.writeFile(wb,"Comparaison_OF.xlsx");
+}
+function filtrerRouge(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display=tr.style.backgroundColor==="rgb(255, 153, 153)"?"":"none";});}
+function filtrerBlanc(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display=tr.style.backgroundColor==="rgb(255, 153, 153)"?"none":"";});}
+function resetFiltre(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display="";});}
+
+// --- Firebase et Inventaire ---
+const PASSWORD="PLN2025";
+window.addEventListener("load",()=>{
+  let saisie=prompt("Veuillez entrer le mot de passe pour accéder à cette page :");
+  if(saisie!==PASSWORD){ alert("Mot de passe incorrect ! Redirection vers la page d'accueil."); window.location.href="inv.html"; }
+});
+
+const firebaseConfig={
+  apiKey:"VOTRE_API_KEY",
+  authDomain:"VOTRE_PROJECT.firebaseapp.com",
+  databaseURL:"https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId:"inventaire-10c24",
+  storageBucket:"inventaire-10c24.appspot.com",
+  messagingSenderId:"SENDER_ID",
+  appId:"APP_ID"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const fichesRef = db.ref('fiches');
-
-const tbody = document.getElementById("table-fiches");
-
-// ===== Fonction vider toutes les fiches =====
-function viderTout() {
-  if(confirm("Voulez-vous vraiment supprimer toutes les fiches ?")) {
-    fichesRef.remove()
-      .then(() => alert("Toutes les fiches ont été supprimées !"))
-      .catch(err => alert("Erreur : " + err));
-  }
-}
-
-// ===== Fonction voir fiche =====
-function voirFiche(key) {
-  localStorage.setItem("fiche_view_key", key);
-  window.location.href = "fiche.html"; // page fiche à créer
-}
-
-// ===== Télécharger la fiche Excel =====
-function telechargerExcel(key) {
-  fichesRef.child(key).get().then(snapshot => {
-    const fiche = snapshot.val();
-    if(!fiche || !fiche.inventaire || fiche.inventaire.length === 0) {
-      alert("Aucune donnée d'inventaire pour cette fiche !");
-      return;
-    }
-
-    const excelData = fiche.inventaire.map(ligne => ({
-      Lot: ligne.lot || "",
-      Emplacement: ligne.emplacement || "",
-      "Code + Version": ligne.codeVersion || "",
-      Désignation: ligne.designation || "",
-      "OF de destination": ligne.ofDest || "",
-      Quantité: ligne.quantite || "",
-      Unité: ligne.unite || "",
-      Remarque: ligne.remarque || ""
+const db=firebase.database();
+const fichesRef=db.ref('fiches');
+const tbodyFiches=document.getElementById("table-fiches-body");
+const atelierNoms={
+  "03":"ESTAMPAGE","05":"USINAGE 1","06":"USINAGE 2","07":"POLISSAGE 1","08":"POLISSAGE 2","09":"TRAITEMENT DE SURFACE",
+  "11":"POLISSAGE 4","13":"ASSEMBLAGE 1","16":"FONDERIE","17":"ASSEMBLAGE 2","19":"USINAGE 3","21":"INJECTION TYNA",
+  "22":"ESTAMPAGE TYNA","23":"USINAGE TYNA","24":"ASSEMBLAGE TYNA"
+};
+function viderTout(){if(confirm("Voulez-vous vraiment supprimer toutes les fiches ?")){fichesRef.remove().then(()=>alert("Toutes les fiches ont été supprimées !")).catch(err=>alert("Erreur : "+err));}}
+function telechargerExcel(key){
+  fichesRef.child(key).get().then(snapshot=>{
+    const fiche=snapshot.val();
+    if(!fiche||!fiche.inventaire||fiche.inventaire.length===0){alert("Aucune donnée !"); return;}
+    const excelData=fiche.inventaire.map(l=>({
+      "Code Atelier":fiche.atelier,
+      Atelier:atelierNoms[fiche.atelier]||fiche.atelier,
+      Responsable:fiche.responsable,Poste:fiche.poste,Date:fiche.date,
+      Lot:l.lot||"",Emplacement:l.emplacement||"", "Code + Version":l.codeVersion||"", Désignation:l.designation||"",
+      "OF de destination":l.ofDest||"", Quantité:l.quantite||"", Unité:l.unite||"", Remarque:l.remarque||""
     }));
-
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
-
-    const nom = `Inventaire_${fiche.atelier}_${fiche.responsable.replace(/ /g, "_")}.xlsx`;
-    XLSX.writeFile(wb, nom);
-  }).catch(err => alert("Erreur téléchargement : "+err));
+    const ws=XLSX.utils.json_to_sheet(excelData);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Inventaire");
+    XLSX.writeFile(wb,`Inventaire_${atelierNoms[fiche.atelier]||fiche.atelier}_${fiche.responsable.replace(/ /g,"_")}.xlsx`);
+  });
 }
-
-// ===== Écoute Firebase pour mise à jour en temps réel =====
-fichesRef.on('value', snapshot => {
-  tbody.innerHTML = "";
-  const fiches = snapshot.val();
-  const compteResponsables = {}; // pour le diagramme
-  if(fiches) {
-    Object.keys(fiches).forEach(key => {
-      const fiche = fiches[key];
-      // remplir tableau
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${fiche.atelier}</td>
-        <td>${fiche.responsable}</td>
-        <td>${fiche.poste}</td>
-        <td>${fiche.date}</td>
-        <td>
-          <button onclick="voirFiche('${key}')">Voir</button>
-          <button onclick="telechargerExcel('${key}')">Télécharger Excel</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-
-      // compter lignes pour chaque responsable
-      compteResponsables[fiche.responsable] = (compteResponsables[fiche.responsable] || 0) + fiche.inventaire.length;
+function telechargerExcelAtelier(at,fiches){
+  let lignes=[];
+  Object.values(fiches).forEach(f=>{
+    if(f.atelier==at && f.inventaire){
+      lignes=lignes.concat(f.inventaire.map(l=>({
+        "Code Atelier":f.atelier,
+        Atelier:atelierNoms[f.atelier]||f.atelier,
+        Responsable:f.responsable,Poste:f.poste,Date:f.date,
+        "Code + Version":l.codeVersion,Désignation:l.designation,Quantité:l.quantite,"OF de destination":l.ofDest,Remarque:l.remarque
+      })));
+    }
+  });
+  if(lignes.length===0){alert("Aucune ligne pour cet atelier !"); return;}
+  const ws=XLSX.utils.json_to_sheet(lignes);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Inventaire_Atelier");
+  XLSX.writeFile(wb,`Inventaire_${atelierNoms[at]||at}.xlsx`);
+}
+function telechargerTout(){
+  fichesRef.get().then(snapshot=>{
+    const fiches=snapshot.val()||{};
+    let lignes=[];
+    Object.values(fiches).forEach(f=>{
+      if(f.inventaire){
+        lignes=lignes.concat(f.inventaire.map(l=>({
+          Atelier:atelierNoms[f.atelier]||f.atelier, Responsable:f.responsable, "Code + Version":l.codeVersion,
+          Désignation:l.designation, Quantité:l.quantite, Poste:f.poste, "OF de destination":l.ofDest, Remarque:l.remarque
+        })));
+      }
     });
-  }
-  // ===== Diagramme =====
-  updateChart(compteResponsables);
+    if(lignes.length===0){alert("Aucune donnée !"); return;}
+    const ws=XLSX.utils.json_to_sheet(lignes);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"Inventaire_Tout");
+    XLSX.writeFile(wb,"Inventaire_Tout_Ateliers.xlsx");
+  });
+}
+fichesRef.on('value',snapshot=>{
+  tbodyFiches.innerHTML="";
+  const fiches=snapshot.val()||{};
+  const compteAteliers={};
+  const atelierSet=new Set();
+  const excelBody=document.getElementById("excelAtelierBody");
+  excelBody.innerHTML="";
+  Object.keys(fiches).forEach(key=>{
+    const f=fiches[key];
+    const nomAtelier=atelierNoms[f.atelier]||f.atelier;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${f.atelier}</td><td>${nomAtelier}</td><td>${f.responsable}</td><td>${f.poste}</td><td>${f.date}</td><td><button onclick="telechargerExcel('${key}')">Télécharger Excel</button></td>`;
+    tbodyFiches.appendChild(tr);
+    compteAteliers[f.atelier]=(compteAteliers[f.atelier]||0)+f.inventaire.length;
+    atelierSet.add(f.atelier);
+  });
+  atelierSet.forEach(at=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${atelierNoms[at]||at}</td><td><button onclick='telechargerExcelAtelier("${at}", ${JSON.stringify(fiches)})'>Télécharger</button></td>`;
+    excelBody.appendChild(tr);
+  });
+  updateChart(compteAteliers);
 });
 
-// ===== Diagramme avec Chart.js =====
-let chartInstance = null;
-function updateChart(data) {
-  const ctx = document.getElementById('chart-responsables').getContext('2d');
-  const labels = Object.keys(data);
-  const values = Object.values(data);
-
-  // ajuster hauteur du canvas en fonction du nombre de lignes (2cm par ligne)
-  const hauteurParLigne = 20; // px ≈ 2cm pour l'écran
-  const totalHeight = Math.max(hauteurParLigne * labels.length, 100);
-  document.getElementById('chart-responsables').height = totalHeight;
-
+// --- Chart ---
+let chartInstance=null;
+function updateChart(data){
+  const ctx=document.getElementById('chart-responsables').getContext('2d');
+  const labels=Object.keys(data).map(a=>atelierNoms[a]||a);
+  const values=Object.values(data);
   if(chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Nombre de lignes saisies',
-        data: values,
-        backgroundColor: '#28a745'
-      }]
-    },
-     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      indexAxis: 'y',
-      plugins: {
-        title: {
-          display: true,
-          text: '📊 Nombre de lignes saisies par responsable',
-          font: { size: 20, weight: 'bold' }
-        }
-      },
-      scales: {
-        x: { beginAtZero: true, stepSize: 1 },
-        y: { ticks: { font: { size: 14 } } }
-      }
+  chartInstance=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Nombre de lignes',data:values,backgroundColor:'#001f4d',barThickness:75,maxBarThickness:75,categoryPercentage:0.6,barPercentage:0.9}]},
+    options:{
+      responsive:false, maintainAspectRatio:false, indexAxis:'x',
+      plugins:{title:{display:true,text:'📊 Nombre de lignes saisies par atelier',color:"#001f4d",font:{size:18,weight:'bold'}}},
+      
+      scales:{y:{beginAtZero:true,stepSize:1,ticks:{precision:0,font:{size:14}}},x:{ticks:{font:{size:10}}}}
     }
+    
   });
 }
 </script>
