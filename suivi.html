@@ -143,10 +143,7 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 <div id="chart-of-valides-container">
   <canvas id="chart-of-valides"></canvas>
 </div>
-<h3>Perte financière des OF manquants</h3>
-<div style="display:flex; justify-content:center; margin-top:20px;">
-  <canvas id="chart-perte-of" width="900" height="500"></canvas>
-</div>
+
 <!-- Tableau masqué -->
 <table id="tableau-suivi" style="display:none;">
 <thead>
@@ -509,7 +506,7 @@ function afficherChartOFPrevusVsSaisis() {
         labels,
         datasets: [
           { label: 'OF prévus', data: dataPrevus, backgroundColor: 'rgba(255, 99, 132, 0.5)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 },
-          { label: 'OF saisis', data: dataSaisis, backgroundColor: 'rgba(54, 162, 235, 0.5)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }
+          { label: 'OF saisis', data: dataSaisis, backgroundColor: 'rgba(75, 192, 75, 0.6)', borderColor: 'rgb(75, 192, 75)', borderWidth: 1 }
         ]
       },
       options: {
@@ -523,86 +520,8 @@ function afficherChartOFPrevusVsSaisis() {
     });
   });
 }
-function afficherChartPerteOFManquants() {
 
-  const perteParAtelier = {};
 
-  ofManquantsRef.get().then(snapshot => {
-    const data = snapshot.val() || {};
-
-    Object.values(data).forEach(item => {
-      const atelier = item.atelier;
-      const codeArticle = item.codeArticle;
-      const of = item.of;
-
-      // 🔑 clé OF prévue
-      const keyOF = `${codeArticle}|${of}`;
-      const suivi = codeDictSuivi[keyOF];
-      if (!suivi) return;
-
-      const qtePrevue = suivi.qte || 0;
-
-      // 🔑 clé prix PMP (AF1|codeArticle)
-      const keyPrix = `AF1|${codeArticle}`;
-      const prix = codeDictPMP[keyPrix]?.prix || 0;
-
-      const perte = qtePrevue * prix;
-
-      if (!perteParAtelier[atelier]) perteParAtelier[atelier] = 0;
-      perteParAtelier[atelier] += perte;
-    });
-
-    // 🎯 Préparer données chart
-    const labels = Object.keys(perteParAtelier).map(a => atelierNoms[a] || a);
-    const values = Object.values(perteParAtelier).map(v => Math.round(v));
-
-    const ctx = document.getElementById('chart-perte-of').getContext('2d');
-
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Perte OF manquants (DT)',
-          data: values,
-          backgroundColor: 'rgba(200, 0, 0, 0.6)'
-        }]
-      },
-      options: {
-        responsive: false,
-        plugins: {
-          title: {
-            display: true,
-            text: '💸 Perte financière due aux OF manquants par atelier',
-            font: { size: 16, weight: 'bold' }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const v = ctx.raw;
-                if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + ' M DT';
-                if (v >= 1_000) return (v / 1_000).toFixed(2) + ' kDT';
-                return v + ' DT';
-              }
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: v => {
-                if (v >= 1_000_000) return (v / 1_000_000) + 'M';
-                if (v >= 1_000) return (v / 1_000) + 'k';
-                return v;
-              }
-            }
-          }
-        }
-      }
-    });
-  });
-}
 
 
 // Afficher OFManquants au chargement
@@ -610,7 +529,7 @@ function afficherChartPerteOFManquants() {
 document.addEventListener("DOMContentLoaded", function() {
   afficherOFManquants().then(() => {
     afficherChartOFPrevusVsSaisis();  
-     afficherChartPerteOFManquants(); 
+      
   });
 });
 
