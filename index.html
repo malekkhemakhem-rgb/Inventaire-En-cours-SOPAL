@@ -402,7 +402,7 @@ function verifierQuantiteInput(input) {
   }
 
   if (qteSaisie > qteMax) {
- const pourcentage = ((qteSaisie / qteMax) * 100).toFixed(2); // 2 décimales
+ const pourcentage = ((qteMax / qteSaisie) * 100).toFixed(2); // 2 décimales
 remarqueSpan.textContent = `⚠️ Dépassement : ${pourcentage}%`;
     remarqueSpan.classList.remove("hidden");
   } else {
