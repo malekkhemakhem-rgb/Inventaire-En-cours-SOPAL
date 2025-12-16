@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Suivi inventaire</title>
+<script src="codeDictSuivi.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -12,17 +13,13 @@ body { font-family: Arial, sans-serif; margin: 20px; }
 body::before {
   content: "";
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: url('images.jpg') no-repeat center center;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: url('images.JPG') no-repeat center center;
   background-size: cover;
   filter: blur(8px);
   z-index: -1;
 }
-
-/* Bande titre bleu transparent */
 h2, h3 {
   text-align: center;
   color: #001f4d;
@@ -31,57 +28,65 @@ h2, h3 {
   border-radius: 8px;
 }
 
-/* Tableau principal */
-#table-fiches { border-collapse: collapse; width: 100%; margin-top: 20px; }
-#table-fiches th, #table-fiches td { border: 1px solid #000; padding: 6px; text-align: center; background-color:#eee7e7; }
-
-/* Boutons */
+/* Tableaux */
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border:1px solid #000; padding:6px; text-align:center; background-color:#eee7e7; }
 button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 
-/* Chart centré */
+/* Chart nombres de lignes */
 #chart-container { display:flex; justify-content:center; margin-top:30px; }
 #chart-responsables { height:400px; width:700px; }
 
-/* Tableau final et bouton Télécharger tout */
-#atelier-container {
+/* Tableau fichiers finaux par atelier */
+#atelier-container { 
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
-  margin-top: 20px;
-}
-#tableExcelAtelier { border-collapse: collapse; width:500px; }
-#tableExcelAtelier th, #tableExcelAtelier td { border:1px solid #000; padding:6px; text-align:center; }
 
-/* Titre bouton Télécharger tout */
-#download-title {
-  text-align: center;
-  color: #001f4d;
-  font-weight:bold;
-  margin-bottom:5px;
- 
-  padding:5px;
-  border-radius:5px;
+  margin: 20px auto;      /* 🔥 centre le tableau horizontalement */
+  max-width: 400px;
+
+  background: rgba(255,255,255,0.2);
+  padding: 10px;
+  border-radius: 8px;
 }
+
+#tableExcelAtelier th, #tableExcelAtelier td {
+  background: transparent;
+  border: 1px solid #000;
+  padding: 6px;
+  text-align: center;}
+  #tableExcelAtelier {
+  margin: 20px ;   /* centre horizontalement */
+  border-collapse: collapse;
+}
+
+/* Boutons Télécharger tout */
 #download-button-container { display:flex; justify-content:center; width:100%; }
 
-/* Comparaison */
-#compare-title {
-  text-align: center;
-  background: rgba(0,31,77,0.4);
-  color: #001f4d;
-  padding:10px;
-  border-radius:8px;
-  width:100%;
-  margin-top:40px;
+/* Suivi OF validés */
+#chart-of-valides-container {
+  display:flex; 
+  justify-content:center; 
+  margin-top:20px;
 }
-#resultCompareTable { width:100%; border-collapse: collapse; margin-top:20px; }
-#resultCompareTable th, #resultCompareTable td { border:1px solid #000; padding:6px; text-align:center; }
-#resultCompareTable th { background-color:#e6e6f5; font-weight:bold; }
+
+#chart-of-valides {
+  width: 900px;   /* augmenter la largeur */
+  height: 500px;  /* augmenter la hauteur */
+}
+
+
+/* Comparaison physique/informatique */
+#compare-title { text-align:center; background: rgba(0,31,77,0.4); color: #001f4d; padding:10px; border-radius:8px; width:100%; margin-top:40px; }
 </style>
 </head>
 <body>
 
+<!-- ============================ -->
+<!-- Suivi des fiches inventaire -->
+<!-- ============================ -->
 <h2>Suivi des fiches inventaire</h2>
 <button onclick="viderTout()">Vider toutes les fiches</button>
 
@@ -103,9 +108,12 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
   <canvas id="chart-responsables"></canvas>
 </div>
 
+<!-- ============================ -->
+<!-- Fichiers finaux par atelier -->
+<!-- ============================ -->
 <h3>Fichiers finaux par atelier</h3>
 <div id="atelier-container">
-  <table id="tableExcelAtelier">
+  <table id="tableExcelAtelier"> 
     <thead>
       <tr>
         <th>Atelier</th>
@@ -114,13 +122,44 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
     </thead>
     <tbody id="excelAtelierBody"></tbody>
   </table>
-  
-  <div id="download-title">Télécharger tous les ateliers</div>
   <div id="download-button-container">
     <button onclick="telechargerTout()" style="height:40px;">Télécharger tout</button>
   </div>
 </div>
+<h3>Suivi OF prévus vs saisis</h3>
+<div id="chart-of-prevus-container" style="display:flex; justify-content:center; margin-top:20px;">
+  <canvas id="chart-of-prevus" width="900" height="500"></canvas>
+</div>
+<!-- ============================ -->
+<!-- Suivi des OF validés -->
+<!-- ============================ -->
+<h3>Suivi des OF Manquants </h3>
+<div style="text-align:right;">
+  <button onclick="telechargerExcelOFManquants()">📊 Télécharger Excel</button>
+</div>
 
+<!-- Diagramme nombre OF validés par atelier -->
+<div id="chart-of-valides-container">
+  <canvas id="chart-of-valides"></canvas>
+</div>
+
+<!-- Tableau masqué -->
+<table id="tableau-suivi" style="display:none;">
+<thead>
+<tr>
+  <th>Atelier</th>
+  <th>Code Article</th>
+  <th>OF</th>
+  <th>Validé par</th>
+  <th>Date de validation</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<!-- ============================ -->
+<!-- Comparaison Physique / Informatique -->
+<!-- ============================ -->
 <h2 id="compare-title">Comparaison Physique / Informatique</h2>
 <label>Fichier de référence :</label>
 <input type="file" id="fileRefCompare" accept=".xlsx,.xls"><br><br>
@@ -145,7 +184,9 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 </table>
 
 <script>
-// --- Comparaison ---
+// ============================
+// Comparaison Excel
+// ============================
 let referenceData=[], checkData=[];
 function readExcel(file, callback){
   const reader=new FileReader();
@@ -195,7 +236,9 @@ function filtrerRouge(){[...document.querySelectorAll("#resultCompareBody tr")].
 function filtrerBlanc(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display=tr.style.backgroundColor==="rgb(255, 153, 153)"?"none":"";});}
 function resetFiltre(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display="";});}
 
-// --- Firebase et Inventaire ---
+// ============================
+// Firebase et inventaire
+// ============================
 const PASSWORD="PLN2025";
 window.addEventListener("load",()=>{
   let saisie=prompt("Veuillez entrer le mot de passe pour accéder à cette page :");
@@ -214,39 +257,66 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const fichesRef=db.ref('fiches');
+const ofManquantsRef=db.ref('OFManquants');
+
 const tbodyFiches=document.getElementById("table-fiches-body");
 const atelierNoms={
   "03":"ESTAMPAGE","05":"USINAGE 1","06":"USINAGE 2","07":"POLISSAGE 1","08":"POLISSAGE 2","09":"TRAITEMENT DE SURFACE",
   "11":"POLISSAGE 4","13":"ASSEMBLAGE 1","16":"FONDERIE","17":"ASSEMBLAGE 2","19":"USINAGE 3","21":"INJECTION TYNA",
   "22":"ESTAMPAGE TYNA","23":"USINAGE TYNA","24":"ASSEMBLAGE TYNA"
 };
+
+// ============================
+// Gestion des fiches
+// ============================
 function viderTout(){if(confirm("Voulez-vous vraiment supprimer toutes les fiches ?")){fichesRef.remove().then(()=>alert("Toutes les fiches ont été supprimées !")).catch(err=>alert("Erreur : "+err));}}
+
 function telechargerExcel(key){
   fichesRef.child(key).get().then(snapshot=>{
     const fiche=snapshot.val();
     if(!fiche||!fiche.inventaire||fiche.inventaire.length===0){alert("Aucune donnée !"); return;}
-    const excelData=fiche.inventaire.map(l=>({
-      "Code Atelier":fiche.atelier,
-      Atelier:atelierNoms[fiche.atelier]||fiche.atelier,
-      Responsable:fiche.responsable,Poste:fiche.poste,Date:fiche.date,
-      Lot:l.lot||"",Emplacement:l.emplacement||"", "Code + Version":l.codeVersion||"", Désignation:l.designation||"",
-      "OF de destination":l.ofDest||"", Quantité:l.quantite||"", Unité:l.unite||"", Remarque:l.remarque||""
-    }));
+   const excelData = fiche.inventaire.map(l => {
+  return {
+    "Code Atelier": fiche.atelier,
+    Atelier: atelierNoms[fiche.atelier] || fiche.atelier,
+    Responsable: fiche.responsable,
+    Poste: fiche.poste,
+    Date: fiche.date,
+
+    Lot: l.hasOwnProperty("lot") ? l.lot : "",
+    Emplacement: l.hasOwnProperty("emplacement") ? l.emplacement : "",
+
+    "Code + Version": l.codeVersion || "",
+    Désignation: l.designation || "",
+    "OF de destination": l.ofDest || "",
+    Quantité: l.quantite || "",
+    Unité: l.unite || "",
+    Remarque: l.remarque || ""
+  }
+  });
     const ws=XLSX.utils.json_to_sheet(excelData);
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,"Inventaire");
     XLSX.writeFile(wb,`Inventaire_${atelierNoms[fiche.atelier]||fiche.atelier}_${fiche.responsable.replace(/ /g,"_")}.xlsx`);
   });
 }
+
 function telechargerExcelAtelier(at,fiches){
   let lignes=[];
   Object.values(fiches).forEach(f=>{
     if(f.atelier==at && f.inventaire){
       lignes=lignes.concat(f.inventaire.map(l=>({
-        "Code Atelier":f.atelier,
-        Atelier:atelierNoms[f.atelier]||f.atelier,
+        "Code Atelier":f.atelier, Atelier:atelierNoms[f.atelier]||f.atelier,
         Responsable:f.responsable,Poste:f.poste,Date:f.date,
-        "Code + Version":l.codeVersion,Désignation:l.designation,Quantité:l.quantite,"OF de destination":l.ofDest,Remarque:l.remarque
+          Lot: l.hasOwnProperty("lot") ? l.lot : "",
+    Emplacement: l.hasOwnProperty("emplacement") ? l.emplacement : "",
+
+    "Code + Version": l.codeVersion || "",
+    Désignation: l.designation || "",
+    "OF de destination": l.ofDest || "",
+    Quantité: l.quantite || "",
+    Unité: l.unite || "",
+    Remarque: l.remarque || ""
       })));
     }
   });
@@ -256,6 +326,7 @@ function telechargerExcelAtelier(at,fiches){
   XLSX.utils.book_append_sheet(wb,ws,"Inventaire_Atelier");
   XLSX.writeFile(wb,`Inventaire_${atelierNoms[at]||at}.xlsx`);
 }
+
 function telechargerTout(){
   fichesRef.get().then(snapshot=>{
     const fiches=snapshot.val()||{};
@@ -263,8 +334,15 @@ function telechargerTout(){
     Object.values(fiches).forEach(f=>{
       if(f.inventaire){
         lignes=lignes.concat(f.inventaire.map(l=>({
-          Atelier:atelierNoms[f.atelier]||f.atelier, Responsable:f.responsable, "Code + Version":l.codeVersion,
-          Désignation:l.designation, Quantité:l.quantite, Poste:f.poste, "OF de destination":l.ofDest, Remarque:l.remarque
+          Atelier:atelierNoms[f.atelier]||f.atelier, Responsable:f.responsable,   Lot: l.hasOwnProperty("lot") ? l.lot : "",
+    Emplacement: l.hasOwnProperty("emplacement") ? l.emplacement : "",
+
+    "Code + Version": l.codeVersion || "",
+    Désignation: l.designation || "",
+    "OF de destination": l.ofDest || "",
+    Quantité: l.quantite || "",
+    Unité: l.unite || "",
+    Remarque: l.remarque || ""
         })));
       }
     });
@@ -275,6 +353,7 @@ function telechargerTout(){
     XLSX.writeFile(wb,"Inventaire_Tout_Ateliers.xlsx");
   });
 }
+
 fichesRef.on('value',snapshot=>{
   tbodyFiches.innerHTML="";
   const fiches=snapshot.val()||{};
@@ -286,7 +365,8 @@ fichesRef.on('value',snapshot=>{
     const f=fiches[key];
     const nomAtelier=atelierNoms[f.atelier]||f.atelier;
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${f.atelier}</td><td>${nomAtelier}</td><td>${f.responsable}</td><td>${f.poste}</td><td>${f.date}</td><td><button onclick="telechargerExcel('${key}')">Télécharger Excel</button></td>`;
+    tr.innerHTML=`<td>${f.atelier}</td><td>${nomAtelier}</td><td>${f.responsable}</td><td>${f.poste}</td><td>${f.date}</td>
+      <td><button onclick="telechargerExcel('${key}')">Télécharger Excel</button></td>`;
     tbodyFiches.appendChild(tr);
     compteAteliers[f.atelier]=(compteAteliers[f.atelier]||0)+f.inventaire.length;
     atelierSet.add(f.atelier);
@@ -299,7 +379,83 @@ fichesRef.on('value',snapshot=>{
   updateChart(compteAteliers);
 });
 
-// --- Chart ---
+// ============================
+// Suivi OF manquants
+// ============================
+function afficherOFManquants() {
+  const tbody = document.querySelector("#tableau-suivi tbody");
+  tbody.innerHTML = "";
+  return ofManquantsRef.once('value')
+    .then(snapshot => {
+      if (!snapshot.exists()) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" style="text-align:center">Aucun OF validé trouvé</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+      snapshot.forEach(itemSnap => {
+        const item = itemSnap.val();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.atelier || ""}</td>
+          <td>${item.codeArticle || ""}</td>
+          <td>${item.of || ""}</td>
+          <td>${item.validePar || ""}</td>
+          <td>${item.dateValidation || ""}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      afficherChartOFValides(snapshot.val());
+    })
+    .catch(err => {
+      console.error("Erreur récupération OF manquants :", err);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="5" style="text-align:center; color:red;">Erreur lors de la récupération</td>`;
+      tbody.appendChild(tr);
+    });
+}
+
+
+// Diagramme nombre OF validés par atelier
+function afficherChartOFValides(data){
+  const compte={};
+  Object.values(data||{}).forEach(item=>{
+    const at=item.atelier;
+    compte[at]=(compte[at]||0)+1;
+  });
+  const ctx=document.getElementById('chart-of-valides').getContext('2d');
+  new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:Object.keys(compte).map(a=>atelierNoms[a]||a),
+      datasets:[{label:'OF validés',data:Object.values(compte),backgroundColor:'#001f4d'}]
+    },
+    options:{
+      responsive:false,
+      plugins:{title:{display:true,text:'Nombre d\'OF Non comptèes/Atelier',font:{size:16,weight:'bold'},color:'#001f4d'}},
+      scales:{y:{beginAtZero:true,stepSize:1}}
+    }
+  });
+}
+
+// Télécharger Excel OFManquants
+function telechargerExcelOFManquants(){
+  ofManquantsRef.get().then(snapshot=>{
+    const data=snapshot.val();
+    if(!data){alert("Aucune donnée !"); return;}
+    const excelData=Object.values(data).map(item=>({
+      Atelier:item.atelier, "Code Article":item.codeArticle, OF:item.of, "Validé par":item.validePar, "Date validation":item.dateValidation
+    }));
+    const ws=XLSX.utils.json_to_sheet(excelData);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,"OFManquants");
+    XLSX.writeFile(wb,"OFManquants.xlsx");
+  });
+}
+
+// ============================
+// Chart nombre de lignes par atelier
+// ============================
 let chartInstance=null;
 function updateChart(data){
   const ctx=document.getElementById('chart-responsables').getContext('2d');
@@ -312,13 +468,67 @@ function updateChart(data){
     options:{
       responsive:false, maintainAspectRatio:false, indexAxis:'x',
       plugins:{title:{display:true,text:'📊 Nombre de lignes saisies par atelier',color:"#001f4d",font:{size:18,weight:'bold'}}},
-      
       scales:{y:{beginAtZero:true,stepSize:1,ticks:{precision:0,font:{size:14}}},x:{ticks:{font:{size:10}}}}
     }
-    
   });
 }
+function afficherChartOFPrevusVsSaisis() {
+  const dictSuivi = {};
+
+  // 1️⃣ compter OF prévus par atelier
+  Object.values(codeDictSuivi).forEach(item => {
+    const at = item.atelier;
+    if (!dictSuivi[at]) dictSuivi[at] = { prevu: 0, saisi: 0 };
+    dictSuivi[at].prevu += 1;
+  });
+
+  // 2️⃣ récupérer les OF saisis depuis les fiches Firebase
+  fichesRef.get().then(snapshot => {
+    const fiches = snapshot.val() || {};
+    Object.values(fiches).forEach(fiche => {
+      if (fiche.inventaire) {
+        const at = fiche.atelier;
+        if (!dictSuivi[at]) dictSuivi[at] = { prevu: 0, saisi: 0 };
+        dictSuivi[at].saisi += fiche.inventaire.length;
+      }
+    });
+
+    // 3️⃣ créer le diagramme
+    const ctx = document.getElementById('chart-of-prevus').getContext('2d');
+    const labels = Object.keys(dictSuivi).map(a => atelierNoms[a] || a);
+    const dataPrevus = Object.keys(dictSuivi).map(a => dictSuivi[a].prevu);
+    const dataSaisis = Object.keys(dictSuivi).map(a => dictSuivi[a].saisi);
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'OF prévus', data: dataPrevus, backgroundColor: 'rgba(255, 99, 132, 0.5)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 },
+          { label: 'OF saisis', data: dataSaisis, backgroundColor: 'rgba(54, 162, 235, 0.5)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          title: { display: true, text: 'Suivi OF prévus vs saisis par atelier', font: { size: 16, weight: 'bold' } },
+          legend: { position: 'top' }
+        },
+        scales: { y: { beginAtZero: true, stepSize: 1 } }
+      }
+    });
+  });
+}
+
+
+// Afficher OFManquants au chargement
+// Afficher OFManquants et le diagramme au chargement
+document.addEventListener("DOMContentLoaded", function() {
+  afficherOFManquants().then(() => {
+    afficherChartOFPrevusVsSaisis();  
+  });
+});
+
 </script>
 </body>
 </html>
-
