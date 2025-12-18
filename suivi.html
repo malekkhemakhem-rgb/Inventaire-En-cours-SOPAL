@@ -188,7 +188,7 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 <table id="table-fiches">
 <thead>
 <tr>
-  
+    <th>Code Atelier</th>
   <th>Atelier</th>
   <th>Responsable</th>
   <th>Poste</th>
@@ -472,22 +472,46 @@ function telechargerExcelOFManquants(){
 // ============================
 // Chart nombre de lignes par atelier
 // ============================
-let chartInstance=null;
+let chartInstance = null;
 function updateChart(data){
-  const ctx=document.getElementById('chart-responsables').getContext('2d');
-  const labels=Object.keys(data).map(a=>atelierNoms[a]||a);
-  const values=Object.values(data);
+  const ctx = document.getElementById('chart-responsables').getContext('2d');
+  const labels = Object.keys(data); // 🔹 utiliser le code atelier directement
+  const values = Object.values(data);
   if(chartInstance) chartInstance.destroy();
-  chartInstance=new Chart(ctx,{
+  chartInstance = new Chart(ctx,{
     type:'bar',
-    data:{labels,datasets:[{label:'Nombre de lignes',data:values,backgroundColor:'#001f4d',barThickness:75,maxBarThickness:75,categoryPercentage:0.6,barPercentage:0.9}]},
+    data:{
+      labels,
+      datasets:[{
+        label:'Nombre de lignes',
+        data: values,
+        backgroundColor:'#001f4d',
+        barThickness:75,
+        maxBarThickness:75,
+        categoryPercentage:0.6,
+        barPercentage:0.9
+      }]
+    },
     options:{
-      responsive:false, maintainAspectRatio:false, indexAxis:'x',
-      plugins:{title:{display:true,text:'📊 Nombre de lignes saisies par atelier',color:"#001f4d",font:{size:18,weight:'bold'}}},
-      scales:{y:{beginAtZero:true,stepSize:1,ticks:{precision:0,font:{size:14}}},x:{ticks:{font:{size:10}}}}
+      responsive:false,
+      maintainAspectRatio:false,
+      indexAxis:'x',
+      plugins:{
+        title:{
+          display:true,
+          text:'📊 Nombre de lignes saisies par atelier',
+          color:"#001f4d",
+          font:{size:18,weight:'bold'}
+        }
+      },
+      scales:{
+        y:{beginAtZero:true,stepSize:1,ticks:{precision:0,font:{size:14}}},
+        x:{ticks:{font:{size:10}}}
+      }
     }
   });
 }
+
 function afficherChartOFPrevusVsSaisis() {
   const dictSuivi = {};
 

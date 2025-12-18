@@ -132,39 +132,13 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 
 <div class="section">
 <strong>Atelier :</strong>
-<input list="listeAteliers" id="atelier" style="width:250px;" autocomplete="off" required>
+<input list="listeAteliers" id="atelier" style="width:150px;" required>
 <datalist id="listeAteliers">
-  <option value="03 - ESTAMPAGE">
-  <option value="05 - USINAGE 1">
-  <option value="06 - USINAGE 2">
-  <option value="07 - POLISSAGE 1">
-  <option value="08 - POLISSAGE 2">
-  <option value="09 - TRAITEMENT DE SURFACE">
-  <option value="11 - POLISSAGE 4">
-  <option value="13 - ASSEMBLAGE 1">
-  <option value="16 - FONDERIE">
-  <option value="17 - ASSEMBLAGE 2">
-  <option value="19 - USINAGE 3">
-  <option value="21 - INJECTION TYNA">
-  <option value="22 - ESTAMPAGE TYNA">
-  <option value="23 - USINAGE TYNA">
-  <option value="24 - ASSEMBLAGE TYNA">
-  <option value="APASS - ASSEMBLAGE AQUAPLAST">
-  <option value="APINJ - INJECTION AQUAPLAST">
-  <option value="QVASS - ASSEMBLAGE QUIVEM">
-  <option value="SAASS - ASSEMBLAGE SANA">
-  <option value="SACIN - CINTRAGE SANA">
-  <option value="SAPOL - POLISSAGE SANA">
-  <option value="SASOU - SOUDURE SANA">
-  <option value="SATUB - TRAVAIL TUBE SANA">
-  <option value="SAUSI - USINAGE SANA">
-  <option value="SGASS - ASSEMBLAGE SOPAL GAZ">
-  <option value="SGEST - ESTAMPAGE SOPAL GAZ">
-  <option value="SGINJ - INJECTION SOPAL GAZ">
-  <option value="SGUSI - USINAGE SOPAL GAZ">
+  <option value="03"><option value="05"><option value="06"><option value="07">
+  <option value="08"><option value="09"><option value="11"><option value="13">
+  <option value="16"><option value="17"><option value="19"><option value="21">
+  <option value="22"><option value="23"><option value="24">
 </datalist>
-
-
 &nbsp;&nbsp;<strong>Responsable d’inventaire :</strong>
 <input type="text" id="responsable" style="width:250px;" readonly required>
 &nbsp;&nbsp;<strong>Poste de travail :</strong>
@@ -198,60 +172,16 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 
 <script>
 // Atelier -> Responsable
-const ateliersData = {
-  "03":  { nom: "ESTAMPAGE", responsable: "Achraf AKROUT" },
-  "05":  { nom: "USINAGE 1", responsable: "Wassim JARRAYA" },
-  "06":  { nom: "USINAGE 2", responsable: "Ali CHAARI" },
-  "07":  { nom: "POLISSAGE 1", responsable: "Abderrazek REGAYEG" },
-  "08":  { nom: "POLISSAGE 2", responsable: "Amine KAMMOUN" },
-  "09":  { nom: "TRAITEMENT DE SURFACE", responsable: "Mohamed FRIKHA" },
-  "11": { nom: "POLISSAGE 4", responsable: "Ahmed TURKI" },
-  "13": { nom: "ASSEMBLAGE 1", responsable: "Abdellah BOUAZIZ" },
-  "16": { nom: "FONDERIE", responsable: "Abdessalem Ben Elhadj" },
-  "17": { nom: "ASSEMBLAGE 2", responsable: "Seifeddine KRIAA" },
-  "19": { nom: "USINAGE 3", responsable: "Tarek LOUATI" },
-  "21": { nom: "INJECTION TYNA", responsable: "Majed FESSI" },
-  "22": { nom: "ESTAMPAGE TYNA", responsable: "Majed FESSI" },
-  "23": { nom: "USINAGE TYNA", responsable: "Majed FESSI" },
-  "24": { nom: "ASSEMBLAGE TYNA", responsable: "Majed FESSI" },
-  "APASS": { nom: "ASSEMBLAGE AQUAPLAST", responsable: "Nihel HAMMAMI" },
-  "APINJ": { nom: "INJECTION AQUAPLAST", responsable: "Nihel HAMMAMI" },
-  "QVASS": { nom: "ASSEMBLAGE QUIVEM", responsable: "" },
-  "SAASS": { nom: "ASSEMBLAGE SANA", responsable: "Omar GUIDARA" },
-  "SACIN": { nom: "CINTRAGE SANA", responsable: "Omar GUIDARA" },
-  "SAPOL": { nom: "POLISSAGE SANA", responsable: "Omar GUIDARA" },
-  "SASOU": { nom: "SOUDURE SANA", responsable: "Omar GUIDARA" },
-  "SATUB": { nom: "TRAVAIL TUBE SANA", responsable: "Omar GUIDARA" },
-  "SAUSI": { nom: "USINAGE SANA", responsable: "Omar GUIDARA" },
-  "SGASS": { nom: "ASSEMBLAGE SOPAL GAZ", responsable: "Amine AYEDI" },
-  "SGEST": { nom: "ESTAMPAGE SOPAL GAZ", responsable: "Majed FESSI" },
-  "SGINJ": { nom: "INJECTION SOPAL GAZ", responsable: "Majed FESSI" },
-  "SGUSI": { nom: "USINAGE SOPAL GAZ", responsable: "Majed FESSI" }
+const ateliersResponsables = {
+  "03":["Achraf AKROUT"],"05":["Wassim JARRAYA"],"06":["Ali CHAARI"],
+  "07":["Abderrazek REGAYEG"],"08":["Amine KAMMOUN"],"09":["Mohamed FRIKHA"],
+  "11":["Ahmed TURKI"],"13":["Abdellah BOUAZIZ"],"16":["Abdessalem Ben Elhadj"],
+  "17":["Seifeddine KRIAA"],"19":["Tarek LOUATI"],"21":["Majed FESSI"],
+  "22":["Majed FESSI"],"23":["Majed FESSI"],"24":["Majed FESSI"]
 };
-
-const atelierInput = document.getElementById("atelier");
-const responsableInput = document.getElementById("responsable");
-
-atelierInput.addEventListener("input", () => {
-  const value = atelierInput.value.trim();
-
-  // Cherche si c'est "code - nom" ou juste code
-  let code = "";
-  if (value.includes(" - ")) {
-    code = value.split(" - ")[0];
-  } else {
-    code = value; // si juste code
-  }
-
-  if (ateliersData[code]) {
-    const data = ateliersData[code];
-    atelierInput.value = `${code} - ${data.nom}`; // Affiche code + nom
-    responsableInput.value = data.responsable;
-  } else {
-    responsableInput.value = "";
-  }
-});
-
+const atelierInput=document.getElementById("atelier");
+const responsableInput=document.getElementById("responsable");
+atelierInput.addEventListener("input",()=>{responsableInput.value=ateliersResponsables[atelierInput.value]?.[0]||"";});
 
 // Firebase
 const firebaseConfig = {
@@ -498,14 +428,21 @@ function supprimerContenuLigne(bouton) {
 
 function telechargerExcel(){
   const table=document.getElementById('table-inventaire');
+  const tableSansOF=document.getElementById('table-sans-of');
   const atelier=document.getElementById('atelier').value||"Atelier";
   const responsable=document.getElementById('responsable').value||"Responsable";
+  
   let wb=XLSX.utils.book_new();
   wb.Props={ Title:"Fiche d'inventaire", Subject:"Inventaire SOPAL", Author:"SOPAL", CreatedDate:new Date() };
+  
   let data=[];
+  
+  // 🔹 En-têtes du tableau principal
   const headers=[];
   table.querySelectorAll("thead th").forEach(th=>headers.push(th.innerText.trim()));
   data.push(headers);
+
+  // 🔹 Lignes du tableau principal
   table.querySelectorAll("tbody tr").forEach(tr=>{
     const row=[];
     tr.querySelectorAll("td").forEach(td=>{
@@ -514,12 +451,32 @@ function telechargerExcel(){
     });
     data.push(row);
   });
+
+  // 🔹 Lignes du tableau "sans OF" (ajoutées après une ligne vide pour séparer)
+  if(tableSansOF){
+    const headersSansOF = [];
+    tableSansOF.querySelectorAll("thead th").forEach(th=>headersSansOF.push(th.innerText.trim()));
+    data.push([]); // ligne vide pour séparer
+    data.push(headersSansOF);
+
+    tableSansOF.querySelectorAll("tbody tr").forEach(tr=>{
+      const row=[];
+      tr.querySelectorAll("td").forEach(td=>{
+        const input=td.querySelector("input, select");
+        row.push(input?input.value:td.innerText.trim());
+      });
+      data.push(row);
+    });
+  }
+
+  // 🔹 Génération Excel
   const ws=XLSX.utils.aoa_to_sheet(data);
   XLSX.utils.book_append_sheet(wb,ws,"Inventaire");
   XLSX.writeFile(wb,`Inventaire_${atelier}_${responsable}.xlsx`);
 }
 
-document.getElementById('save-button').addEventListener('click', function(){
+
+document.getElementById('save-button').addEventListener('click', async function(){
   const atelier = document.getElementById('atelier').value;
   const responsable = document.getElementById('responsable').value;
   const poste = document.getElementById('poste').value;
@@ -527,23 +484,53 @@ document.getElementById('save-button').addEventListener('click', function(){
     alert("Veuillez remplir tous les champs !");
     return;
   }
-   const tableSansOF = document.getElementById('table-sans-of');
+
+  // =========================
+  // Tableau sans OF (sans doublons)
+  // =========================
+  const tableSansOF = document.getElementById('table-sans-of');
   if(tableSansOF){
     const inventaireSansOF = [];
-    tableSansOF.querySelectorAll("tbody tr").forEach(row => {
+    let ligneIncomplète = false;
+
+    // 🔹 Récupérer existants depuis Firebase
+    const snapshotSansOF = await db.ref('ArticlesSansOF').once('value');
+    const existantsSansOF = snapshotSansOF.val() || {};
+    const clesExistantesSansOF = new Set();
+    Object.values(existantsSansOF).forEach(ligne => {
+      clesExistantesSansOF.add(`${ligne.codeArticle}|${ligne.designation}|${ligne.quantite}|${ligne.unite}|${ligne.atelier}`);
+    });
+
+    tableSansOF.querySelectorAll("tbody tr").forEach((row, idx) => {
       const code = row.cells[0].querySelector('input')?.value.trim();
-      if(code){ // on n'enregistre que si code rempli
-        inventaireSansOF.push({
-          codeArticle: code,
-          designation: row.cells[1].querySelector('input')?.value.trim() || "",
-          quantite: row.cells[2].querySelector('input')?.value || "",
-          unite: row.cells[3].querySelector('select')?.value || "",
-          atelier,
-          responsable,
-          date: new Date().toLocaleString()
-        });
+      const designation = row.cells[1].querySelector('input')?.value.trim() || "";
+      const quantite = row.cells[2].querySelector('input')?.value || "";
+      const unite = row.cells[3].querySelector('select')?.value || "";
+
+      if(code){
+        if(!designation || !quantite || !unite){
+          alert(`Veuillez remplir toutes les cellules obligatoires de la ligne ${idx + 1} du tableau "sans OF" !`);
+          ligneIncomplète = true;
+          return;
+        }
+
+        const cleUnique = `${code}|${designation}|${quantite}|${unite}|${atelier}`;
+        if(!clesExistantesSansOF.has(cleUnique)){
+          inventaireSansOF.push({
+            codeArticle: code,
+            designation,
+            quantite,
+            unite,
+            atelier,
+            responsable,
+            date: new Date().toLocaleString()
+          });
+          clesExistantesSansOF.add(cleUnique);
+        }
       }
     });
+
+    if(ligneIncomplète) return;
 
     if(inventaireSansOF.length > 0){
       const refSansOF = db.ref('ArticlesSansOF');
@@ -551,12 +538,13 @@ document.getElementById('save-button').addEventListener('click', function(){
         const newKey = refSansOF.push().key;
         refSansOF.child(newKey).set(item);
       });
-      alert("✅ Articles sans OF enregistrés séparément !");
-    }
+      alert(`✅ ${inventaireSansOF.length} article(s) sans OF enregistrés (doublons ignorés) !`);
+    } 
   }
 
-  
-
+  // =========================
+  // Tableau principal (sans doublons)
+  // =========================
   const table = document.getElementById('table-inventaire');
   const inventaire = [];
   for(let i = 1; i < table.rows.length; i++){
@@ -590,19 +578,40 @@ document.getElementById('save-button').addEventListener('click', function(){
 
   if(!inventaireComplet(inventaire)) return;
 
-  // 🔹 Création de l'objet fiche à envoyer
+  // 🔹 Filtrer les doublons existants dans Firebase
+  const snapshotPrincipal = await fichesRef.once('value');
+  const existantsPrincipal = snapshotPrincipal.val() || {};
+  const clesExistantesPrincipal = new Set();
+  Object.values(existantsPrincipal).forEach(fiche => {
+    if(fiche.inventaire){
+      fiche.inventaire.forEach(ligne => {
+        clesExistantesPrincipal.add(`${ligne.lot}|${ligne.emplacement}|${ligne.codeVersion}|${ligne.designation}|${ligne.ofDest}|${ligne.quantite}|${ligne.unite}`);
+      });
+    }
+  });
+
+  const nouvellesLignesInventaire = inventaire.filter(ligne => {
+    const cleUnique = `${ligne.lot}|${ligne.emplacement}|${ligne.codeVersion}|${ligne.designation}|${ligne.ofDest}|${ligne.quantite}|${ligne.unite}`;
+    return !clesExistantesPrincipal.has(cleUnique);
+  });
+
+  if(nouvellesLignesInventaire.length === 0){
+    alert("ℹ️ Aucun nouvel enregistrement dans le tableau principal (tout est doublon).");
+    return;
+  }
+
+  // 🔹 Enregistrement dans Firebase
   const fiche = {
     atelier,
     responsable,
     poste,
     date: new Date().toLocaleString(),
-    inventaire
+    inventaire: nouvellesLignesInventaire
   };
 
-  // 🔹 Enregistrement dans Firebase
   const newKey = fichesRef.push().key;
   fichesRef.child(newKey).set(fiche)
-    .then(()=>alert("✅ Fiche enregistrée avec succès !"))
+    .then(()=>alert(`✅ Fiche enregistrée avec ${nouvellesLignesInventaire.length} nouvelle(s) ligne(s) inventaire !`))
     .catch(err=>alert("❌ Erreur lors de l'enregistrement : "+err));
 });
 
