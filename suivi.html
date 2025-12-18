@@ -17,7 +17,7 @@ body::before {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  background: url('images.JPG') no-repeat center center;
+  background: url('images.jpg') no-repeat center center;
   background-size: cover;
   filter: blur(20px);
   z-index: -1;
@@ -133,11 +133,15 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 </table>
 <div class="bande-titre">
   <h3>Composants sans OF par Atelier</h3>
+<div style="text-align:right;">
+  <button id="download-sans-of" style="margin-bottom: 10px;">📥 Télécharger Excel</button>
 </div>
 
 <div style="width: 20%; margin: auto; margin-top: 10px;">
   <canvas id="pieComposantsSansOF"></canvas>
 </div>
+
+
 <!-- ============================ -->
 <!-- Fichiers finaux par atelier -->
 <!-- ============================ -->
@@ -472,45 +476,23 @@ function telechargerExcelOFManquants(){
 // ============================
 // Chart nombre de lignes par atelier
 // ============================
-let chartInstance = null;
+let chartInstance=null;
 function updateChart(data){
-  const ctx = document.getElementById('chart-responsables').getContext('2d');
-  const labels = Object.keys(data); // 🔹 utiliser le code atelier directement
-  const values = Object.values(data);
+  const ctx=document.getElementById('chart-responsables').getContext('2d');
+  const labels=Object.keys(data).map(a=>atelierNoms[a]||a);
+  const values=Object.values(data);
   if(chartInstance) chartInstance.destroy();
-  chartInstance = new Chart(ctx,{
+  chartInstance=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels,
-      datasets:[{
-        label:'Nombre de lignes',
-        data: values,
-        backgroundColor:'#001f4d',
-        barThickness:75,
-        maxBarThickness:75,
-        categoryPercentage:0.6,
-        barPercentage:0.9
-      }]
-    },
+    data:{labels,datasets:[{label:'Nombre de lignes',data:values,backgroundColor:'#001f4d',barThickness:75,maxBarThickness:75,categoryPercentage:0.6,barPercentage:0.9}]},
     options:{
-      responsive:false,
-      maintainAspectRatio:false,
-      indexAxis:'x',
-      plugins:{
-        title:{
-          display:true,
-          text:'📊 Nombre de lignes saisies par atelier',
-          color:"#001f4d",
-          font:{size:18,weight:'bold'}
-        }
-      },
-      scales:{
-        y:{beginAtZero:true,stepSize:1,ticks:{precision:0,font:{size:14}}},
-        x:{ticks:{font:{size:10}}}
-      }
+      responsive:false, maintainAspectRatio:false, indexAxis:'x',
+      plugins:{title:{display:true,text:'📊 Nombre de lignes saisies par atelier',color:"#001f4d",font:{size:18,weight:'bold'}}},
+      scales:{y:{beginAtZero:true,stepSize:1,ticks:{precision:0,font:{size:14}}},x:{ticks:{font:{size:10}}}}
     }
   });
 }
+
 
 function afficherChartOFPrevusVsSaisis() {
   const dictSuivi = {};
@@ -623,6 +605,32 @@ document.addEventListener("DOMContentLoaded", function() {
       
   });
 });
+document.getElementById('download-sans-of').addEventListener('click', async function() {
+  const refSansOF = db.ref('ArticlesSansOF');
+  const snapshot = await refSansOF.once('value');
+  const data = snapshot.val();
+  
+  if(!data){
+    alert("Aucun composant sans OF trouvé !");
+    return;
+  }
+
+  const excelData = Object.values(data).map(item => ({
+    Atelier: item.atelier || "",
+    CodeArticle: item.codeArticle || "",
+    Désignation: item.designation || "",
+    Quantité: item.quantite || "",
+    Unité: item.unite || "",
+    Responsable: item.responsable || "",
+    Date: item.date || ""
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "ComposantsSansOF");
+  XLSX.writeFile(wb, "ComposantsSansOF.xlsx");
+});
+
 
 </script>
 </body>
