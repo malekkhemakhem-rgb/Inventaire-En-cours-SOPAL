@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 body::before {
@@ -18,9 +19,11 @@ body::before {
   width: 100%; height: 100%;
   background: url('images.JPG') no-repeat center center;
   background-size: cover;
-  filter: blur(8px);
+  filter: blur(20px);
   z-index: -1;
 }
+
+
 h2, h3 {
   text-align: center;
   color: #001f4d;
@@ -88,45 +91,16 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 <!-- ============================ -->
 <!-- Suivi des fiches inventaire -->
 <!-- ============================ -->
-<h2>Suivi des fiches inventaire</h2>
-<button onclick="viderTout()">Vider toutes les fiches</button>
+<h2>Suivi Inventaire des en cours SOPAL</h2>
 
-<table id="table-fiches">
-<thead>
-<tr>
-  <th>Code Atelier</th>
-  <th>Atelier</th>
-  <th>Responsable</th>
-  <th>Poste</th>
-  <th>Date</th>
-  <th>Actions</th>
-</tr>
-</thead>
-<tbody id="table-fiches-body"></tbody>
-</table>
+
+
 
 <div id="chart-container">
   <canvas id="chart-responsables"></canvas>
 </div>
 
-<!-- ============================ -->
-<!-- Fichiers finaux par atelier -->
-<!-- ============================ -->
-<h3>Fichiers finaux par atelier</h3>
-<div id="atelier-container">
-  <table id="tableExcelAtelier"> 
-    <thead>
-      <tr>
-        <th>Atelier</th>
-        <th>Télécharger</th>
-      </tr>
-    </thead>
-    <tbody id="excelAtelierBody"></tbody>
-  </table>
-  <div id="download-button-container">
-    <button onclick="telechargerTout()" style="height:40px;">Télécharger tout</button>
-  </div>
-</div>
+
 <h3>Suivi OF prévus vs saisis</h3>
 <div id="chart-of-prevus-container" style="display:flex; justify-content:center; margin-top:20px;">
   <canvas id="chart-of-prevus" width="900" height="500"></canvas>
@@ -157,7 +131,31 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 </thead>
 <tbody></tbody>
 </table>
+<div class="bande-titre">
+  <h3>Composants sans OF par Atelier</h3>
+</div>
 
+<div style="width: 20%; margin: auto; margin-top: 10px;">
+  <canvas id="pieComposantsSansOF"></canvas>
+</div>
+<!-- ============================ -->
+<!-- Fichiers finaux par atelier -->
+<!-- ============================ -->
+<h3>Fichiers finaux par atelier</h3>
+<div id="atelier-container">
+  <table id="tableExcelAtelier"> 
+    <thead>
+      <tr>
+        <th>Atelier</th>
+        <th>Télécharger</th>
+      </tr>
+    </thead>
+    <tbody id="excelAtelierBody"></tbody>
+  </table>
+  <div id="download-button-container">
+    <button onclick="telechargerTout()" style="height:40px;">Télécharger tout</button>
+  </div>
+</div>
 <!-- ============================ -->
 <!-- Comparaison Physique / Informatique -->
 <!-- ============================ -->
@@ -182,6 +180,23 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 </tr>
 </thead>
 <tbody id="resultCompareBody"></tbody>
+</table>
+<!-- ============================ -->
+<!-- Suivi des fiches inventaire -->
+<!-- ============================ -->
+<h2>Suivi Détails de saisie </h2>
+<table id="table-fiches">
+<thead>
+<tr>
+  <th>Code Atelier</th>
+  <th>Atelier</th>
+  <th>Responsable</th>
+  <th>Poste</th>
+  <th>Date</th>
+  <th>Actions</th>
+</tr>
+</thead>
+<tbody id="table-fiches-body"></tbody>
 </table>
 
 <script>
@@ -521,6 +536,56 @@ function afficherChartOFPrevusVsSaisis() {
   });
 }
 
+// Au lieu de : const db = firebase.database();
+genererGraphiqueComposantsSansOF();
+
+function genererGraphiqueComposantsSansOF() {
+  // utilise la variable db déjà existante
+  const refSansOF = db.ref('ArticlesSansOF');
+
+  refSansOF.once('value').then(snapshot => {
+    const data = snapshot.val() || {};
+    const countParAtelier = {};
+
+    Object.values(data).forEach(item => {
+      const atelier = item.atelier || "Inconnu";
+      if (!countParAtelier[atelier]) countParAtelier[atelier] = 0;
+      countParAtelier[atelier]++;
+    });
+
+    const labels = Object.keys(countParAtelier);
+    const values = Object.values(countParAtelier);
+
+    const ctx = document.getElementById('pieComposantsSansOF').getContext('2d');
+
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Composants sans OF',
+          data: values,
+          backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40']
+        }]
+      },
+      options: {
+    responsive: true,
+    plugins: {
+        legend: { position: 'bottom' },
+        title: {
+            display: true,
+            text: 'Nombre de Composants sans OF par Atelier',
+            color: '#001f4d', // 💙 couleur du titre
+            font: {
+                size: 18,     // taille du texte
+                weight: 'bold' // gras
+            }
+        }
+    }
+}
+    });
+  });
+}
 
 
 
@@ -528,7 +593,9 @@ function afficherChartOFPrevusVsSaisis() {
 // Afficher OFManquants et le diagramme au chargement
 document.addEventListener("DOMContentLoaded", function() {
   afficherOFManquants().then(() => {
+    
     afficherChartOFPrevusVsSaisis();  
+    
       
   });
 });

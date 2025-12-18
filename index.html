@@ -12,8 +12,22 @@
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
 <style>
 @font-face { font-family: 'Arial Narrow'; src: local('Arial Narrow'), local('ArialNarrow'); }
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('images.JPG') no-repeat center center;
+  background-size: cover;
+  filter: blur(16px); /* plus flou */
+  z-index: -1;
+}
+
 body { font-family: 'Arial Narrow', Arial, sans-serif; margin: 10px; }
 .header { display: flex; justify-content: space-between; align-items: center; border: 1px solid black; padding: 10px; }
 .logo { font-weight: bold; font-size: 22px; }
@@ -43,6 +57,61 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 .container{ border:1.5px solid black; padding:20px; font-family:"Times New Roman", Times, serif; }
 .title-block,.section,.checkboxes label,.header,h3,strong,label{ font-family:'Arial Narrow', Arial, sans-serif; }
 .screen-only, .print-only { display: table-cell; }
+#save-button {
+  background: rgba(255, 255, 255, 0.85);   /* bouton clair */
+  color: #0a3d62;
+  border: 2px solid transparent;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* contour dynamique */
+#save-button::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    #00c6ff,
+    #0072ff,
+    #00c6ff
+  );
+  background-size: 300% 100%;
+  z-index: -1;
+  animation: borderMove 3s linear infinite;
+}
+/* Tableau Inventaire et Articles sans OF */
+#table-inventaire, #table-sans-of {
+  background-color: white; /* fond blanc */
+}
+
+#table-inventaire th, #table-inventaire td,
+#table-sans-of th, #table-sans-of td {
+  background-color: white; /* cellules blanches */
+}
+#table-inventaire th, #table-sans-of th {
+  background-color: #f9f9f9;
+}
+
+
+/* hover */
+#save-button:hover {
+  background: white;
+  transform: scale(1.05);
+}
+
+/* animation contour */
+@keyframes borderMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
 @media print {
   .remarque-header, .remarque-cell, .no-print { display: none !important; }
   .print-only { display: table-cell !important; }
@@ -63,31 +132,126 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 
 <div class="section">
 <strong>Atelier :</strong>
-<input list="listeAteliers" id="atelier" style="width:150px;" required>
+<input list="listeAteliers" id="atelier" style="width:250px;" autocomplete="off" required>
 <datalist id="listeAteliers">
-  <option value="03"><option value="05"><option value="06"><option value="07">
-  <option value="08"><option value="09"><option value="11"><option value="13">
-  <option value="16"><option value="17"><option value="19"><option value="21">
-  <option value="22"><option value="23"><option value="24">
+  <option value="03 - ESTAMPAGE">
+  <option value="05 - USINAGE 1">
+  <option value="06 - USINAGE 2">
+  <option value="07 - POLISSAGE 1">
+  <option value="08 - POLISSAGE 2">
+  <option value="09 - TRAITEMENT DE SURFACE">
+  <option value="11 - POLISSAGE 4">
+  <option value="13 - ASSEMBLAGE 1">
+  <option value="16 - FONDERIE">
+  <option value="17 - ASSEMBLAGE 2">
+  <option value="19 - USINAGE 3">
+  <option value="21 - INJECTION TYNA">
+  <option value="22 - ESTAMPAGE TYNA">
+  <option value="23 - USINAGE TYNA">
+  <option value="24 - ASSEMBLAGE TYNA">
+  <option value="APASS - ASSEMBLAGE AQUAPLAST">
+  <option value="APINJ - INJECTION AQUAPLAST">
+  <option value="QVASS - ASSEMBLAGE QUIVEM">
+  <option value="SAASS - ASSEMBLAGE SANA">
+  <option value="SACIN - CINTRAGE SANA">
+  <option value="SAPOL - POLISSAGE SANA">
+  <option value="SASOU - SOUDURE SANA">
+  <option value="SATUB - TRAVAIL TUBE SANA">
+  <option value="SAUSI - USINAGE SANA">
+  <option value="SGASS - ASSEMBLAGE SOPAL GAZ">
+  <option value="SGEST - ESTAMPAGE SOPAL GAZ">
+  <option value="SGINJ - INJECTION SOPAL GAZ">
+  <option value="SGUSI - USINAGE SOPAL GAZ">
 </datalist>
+
+
 &nbsp;&nbsp;<strong>Responsable d’inventaire :</strong>
 <input type="text" id="responsable" style="width:250px;" readonly required>
 &nbsp;&nbsp;<strong>Poste de travail :</strong>
 <input type="text" id="poste" style="width:150px;" required>
 </div>
+<style>
+  /* Tableau Articles sans OF */
+  #table-sans-of th, #table-sans-of td {
+    text-align: center;
+    padding: 6px;
+    border: 1px solid black;
+    word-wrap: break-word;
+  }
+
+  /* Largeurs des colonnes */
+  #table-sans-of th:nth-child(1),
+  #table-sans-of td:nth-child(1) { width: 20%; } /* Code Article */
+  
+  #table-sans-of th:nth-child(2),
+  #table-sans-of td:nth-child(2) { width: 40%; } /* Désignation */
+  
+  #table-sans-of th:nth-child(3),
+  #table-sans-of td:nth-child(3) { width: 15%; } /* Quantité */
+  
+  #table-sans-of th:nth-child(4),
+  #table-sans-of td:nth-child(4) { width: 15%; } /* Unité */
+  
+  #table-sans-of th:nth-child(5),
+  #table-sans-of td:nth-child(5) { width: 10%; } /* Boutons */
+</style>
 
 <script>
 // Atelier -> Responsable
-const ateliersResponsables = {
-  "03":["Achraf AKROUT"],"05":["Wassim JARRAYA"],"06":["Ali CHAARI"],
-  "07":["Abderrazek REGAYEG"],"08":["Amine KAMMOUN"],"09":["Mohamed FRIKHA"],
-  "11":["Ahmed TURKI"],"13":["Abdellah BOUAZIZ"],"16":["Abdessalem Ben Elhadj"],
-  "17":["Seifeddine KRIAA"],"19":["Tarek LOUATI"],"21":["Majed FESSI"],
-  "22":["Majed FESSI"],"23":["Majed FESSI"],"24":["Majed FESSI"]
+const ateliersData = {
+  "03":  { nom: "ESTAMPAGE", responsable: "Achraf AKROUT" },
+  "05":  { nom: "USINAGE 1", responsable: "Wassim JARRAYA" },
+  "06":  { nom: "USINAGE 2", responsable: "Ali CHAARI" },
+  "07":  { nom: "POLISSAGE 1", responsable: "Abderrazek REGAYEG" },
+  "08":  { nom: "POLISSAGE 2", responsable: "Amine KAMMOUN" },
+  "09":  { nom: "TRAITEMENT DE SURFACE", responsable: "Mohamed FRIKHA" },
+  "11": { nom: "POLISSAGE 4", responsable: "Ahmed TURKI" },
+  "13": { nom: "ASSEMBLAGE 1", responsable: "Abdellah BOUAZIZ" },
+  "16": { nom: "FONDERIE", responsable: "Abdessalem Ben Elhadj" },
+  "17": { nom: "ASSEMBLAGE 2", responsable: "Seifeddine KRIAA" },
+  "19": { nom: "USINAGE 3", responsable: "Tarek LOUATI" },
+  "21": { nom: "INJECTION TYNA", responsable: "Majed FESSI" },
+  "22": { nom: "ESTAMPAGE TYNA", responsable: "Majed FESSI" },
+  "23": { nom: "USINAGE TYNA", responsable: "Majed FESSI" },
+  "24": { nom: "ASSEMBLAGE TYNA", responsable: "Majed FESSI" },
+  "APASS": { nom: "ASSEMBLAGE AQUAPLAST", responsable: "Nihel HAMMAMI" },
+  "APINJ": { nom: "INJECTION AQUAPLAST", responsable: "Nihel HAMMAMI" },
+  "QVASS": { nom: "ASSEMBLAGE QUIVEM", responsable: "" },
+  "SAASS": { nom: "ASSEMBLAGE SANA", responsable: "Omar GUIDARA" },
+  "SACIN": { nom: "CINTRAGE SANA", responsable: "Omar GUIDARA" },
+  "SAPOL": { nom: "POLISSAGE SANA", responsable: "Omar GUIDARA" },
+  "SASOU": { nom: "SOUDURE SANA", responsable: "Omar GUIDARA" },
+  "SATUB": { nom: "TRAVAIL TUBE SANA", responsable: "Omar GUIDARA" },
+  "SAUSI": { nom: "USINAGE SANA", responsable: "Omar GUIDARA" },
+  "SGASS": { nom: "ASSEMBLAGE SOPAL GAZ", responsable: "Amine AYEDI" },
+  "SGEST": { nom: "ESTAMPAGE SOPAL GAZ", responsable: "Majed FESSI" },
+  "SGINJ": { nom: "INJECTION SOPAL GAZ", responsable: "Majed FESSI" },
+  "SGUSI": { nom: "USINAGE SOPAL GAZ", responsable: "Majed FESSI" }
 };
-const atelierInput=document.getElementById("atelier");
-const responsableInput=document.getElementById("responsable");
-atelierInput.addEventListener("input",()=>{responsableInput.value=ateliersResponsables[atelierInput.value]?.[0]||"";});
+
+const atelierInput = document.getElementById("atelier");
+const responsableInput = document.getElementById("responsable");
+
+atelierInput.addEventListener("input", () => {
+  const value = atelierInput.value.trim();
+
+  // Cherche si c'est "code - nom" ou juste code
+  let code = "";
+  if (value.includes(" - ")) {
+    code = value.split(" - ")[0];
+  } else {
+    code = value; // si juste code
+  }
+
+  if (ateliersData[code]) {
+    const data = ateliersData[code];
+    atelierInput.value = `${code} - ${data.nom}`; // Affiche code + nom
+    responsableInput.value = data.responsable;
+  } else {
+    responsableInput.value = "";
+  }
+});
+
 
 // Firebase
 const firebaseConfig = {
@@ -154,30 +318,64 @@ const fichesRef = db.ref('fiches');
 </tr>
 </tbody>
 </table>
-<div class="no-print" style="margin-top:10px;">
-  <button id="terminer-button">✅ Terminer saisie</button>
+<div class="section no-print hidden" id="bloc-sans-of" style="margin-top:20px; border:1px solid #ccc; padding:10px; display:none;">
+  <h4>⚠️ Composants sans OF 🛠️</h4>
+  <table id="table-sans-of">
+    <thead>
+      <tr>
+        <th>Code Article</th>
+        <th>Désignation</th>
+        <th>Quantité</th>
+        <th>Unité</th>
+        <th>➕ / 🗑️</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" class="code-article"></td>
+        <td><input type="text" class="designation" readonly></td>
+        <td><input type="number"></td>
+        <td>
+          <select>
+            <option value="" selected disabled hidden></option>
+            <option value="UN">UN</option>
+            <option value="KG">KG</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="BA">BA</option>
+          </select>
+        </td>
+        <td>
+          <button class="add-button">+</button>
+          <button class="delete-button">🗑️</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
+
+
 
 <!-- Bloc pour afficher le nombre d'OF manquants et bouton Valider -->
 <div id="of-missing-block" class="no-print" style="margin-top:10px; display:none; border:1px solid #ccc; padding:10px;">
   <span id="of-missing-count"></span>
   <button id="valider-of-missing">Valider tout</button>
 </div>
+<div class="no-print" style="margin-top:20px;">
+  <button id="btn-inserer-sans-of" class="add-button"> 🛠️ Insertion des composants sans OF</button>
+</div>
+<!-- Bouton Enregistrer -->
+<div class="no-print" style="text-align:center; margin-top:5px; display:flex; flex-direction:column; gap:10px; align-items:center;">
+  <button id="save-button">💾 Enregistrer</button>
+  <button id="terminer-button">✅ Terminer saisie</button>
+</div>
 
-
-<div class="no-print">
+<div class="no-print"style="text-align:right; margin-top:5px;">
   <button class="print-button" onclick="window.print()" style="margin-top:2cm;">🖨️ Imprimer la fiche</button>
   <button onclick="telechargerExcel()" style="margin-top:10px;">📊 Télécharger Excel</button>
-  <button id="save-button">💾 Enregistrer</button>
   <button id="charger-button">📂 Mes saisies précédentes</button>
-
-</div>
-
-<!-- Bouton Suivi discret -->
-<div class="no-print" style="text-align:right; margin-top:5px;">
   <button onclick="Suivi()">👁️Suivi</button>
-</div>
-
+  
 </div>
 <div class="footer-code">INT51FE13.2</div>
 
@@ -288,16 +486,15 @@ function ajouterLigne(bouton) {
 }
 
 
-function supprimerContenuLigne(bouton){
-  const ligne=bouton.closest("tr");
-  ligne.querySelectorAll("input").forEach(input=>{input.value=""; input.disabled=false; input.classList.remove("error");});
-  ligne.querySelector("select").selectedIndex=0;
-  ligne.querySelector("select").disabled=false;
-  ligne.querySelector(".warning-text").textContent="";
-  ligne.querySelector(".warning-text").classList.add("hidden");
-  ligne.querySelector(".add-button").disabled=true;
+function supprimerContenuLigne(bouton) {
+  if (!confirm("Supprimer toute la ligne ?")) return;
+
+  const ligne = bouton.closest("tr");
+  if (ligne) ligne.remove();
+
   updateRemarqueVisibility();
 }
+
 
 function telechargerExcel(){
   const table=document.getElementById('table-inventaire');
@@ -330,6 +527,35 @@ document.getElementById('save-button').addEventListener('click', function(){
     alert("Veuillez remplir tous les champs !");
     return;
   }
+   const tableSansOF = document.getElementById('table-sans-of');
+  if(tableSansOF){
+    const inventaireSansOF = [];
+    tableSansOF.querySelectorAll("tbody tr").forEach(row => {
+      const code = row.cells[0].querySelector('input')?.value.trim();
+      if(code){ // on n'enregistre que si code rempli
+        inventaireSansOF.push({
+          codeArticle: code,
+          designation: row.cells[1].querySelector('input')?.value.trim() || "",
+          quantite: row.cells[2].querySelector('input')?.value || "",
+          unite: row.cells[3].querySelector('select')?.value || "",
+          atelier,
+          responsable,
+          date: new Date().toLocaleString()
+        });
+      }
+    });
+
+    if(inventaireSansOF.length > 0){
+      const refSansOF = db.ref('ArticlesSansOF');
+      inventaireSansOF.forEach(item => {
+        const newKey = refSansOF.push().key;
+        refSansOF.child(newKey).set(item);
+      });
+      alert("✅ Articles sans OF enregistrés séparément !");
+    }
+  }
+
+  
 
   const table = document.getElementById('table-inventaire');
   const inventaire = [];
@@ -402,7 +628,7 @@ function verifierQuantiteInput(input) {
   }
 
   if (qteSaisie > qteMax) {
- const pourcentage = ((qteMax / qteSaisie) * 100).toFixed(2); // 2 décimales
+ const pourcentage = (qteSaisie / qteMax).toFixed(2); // 2 décimales
 remarqueSpan.textContent = `⚠️ Dépassement : ${pourcentage}%`;
     remarqueSpan.classList.remove("hidden");
   } else {
@@ -656,6 +882,113 @@ document.getElementById('charger-button').addEventListener('click', function () 
       alert("❌ Erreur chargement : " + err.message);
     });
 });
+function ajouterLigneSansOF(bouton) { 
+  const ligne = bouton.closest("tr");
+  const nouvelleLigne = ligne.cloneNode(true);
+
+  // Vider les valeurs
+  nouvelleLigne.querySelectorAll("input").forEach(input => {
+    input.value = "";
+    input.classList.remove("error");
+  });
+  nouvelleLigne.querySelectorAll("select").forEach(sel => sel.selectedIndex = 0);
+
+  // Ajouter la ligne après l'actuelle
+  ligne.parentNode.insertBefore(nouvelleLigne, ligne.nextSibling);
+
+  // ⚡ Boutons
+  const addBtn = nouvelleLigne.querySelector(".add-button");
+  addBtn.onclick = () => ajouterLigneSansOF(addBtn);
+
+  const delBtn = nouvelleLigne.querySelector(".delete-button");
+  delBtn.onclick = () => supprimerContenuLigne(delBtn);
+
+  // ⚡ Désignation automatique
+  const codeInput = nouvelleLigne.querySelector(".code-article");
+  const designationInput = nouvelleLigne.querySelector(".designation");
+
+  codeInput.addEventListener("blur", () => {
+    const code = codeInput.value.trim().toUpperCase();
+    codeInput.value = code;
+    if(codeDict[code]){
+      designationInput.value = codeDict[code].designation || codeDict[code];
+    } else {
+      designationInput.value = "Code inconnu";
+    }
+  });
+}
+
+// 🔹 Supprimer une ligne
+function supprimerContenuLigne(bouton){
+  if(!confirm("Supprimer cette ligne ?")) return;
+  const ligne = bouton.closest("tr");
+  if(ligne) ligne.remove();
+}
+
+// 🔹 Afficher le tableau au clic
+const btnInsererSansOF = document.getElementById('btn-inserer-sans-of');
+const blocSansOF = document.getElementById('bloc-sans-of');
+
+btnInsererSansOF.addEventListener('click', () => {
+  blocSansOF.style.display = 'block';
+  blocSansOF.classList.remove('hidden');
+
+  const tbody = blocSansOF.querySelector("tbody");
+
+  // ⚡ Créer la première ligne si vide
+  if(tbody && tbody.rows.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="code-article"></td>
+      <td><input type="text" class="designation" readonly></td>
+      <td><input type="number"></td>
+      <td>
+        <select>
+          <option value="" selected disabled hidden></option>
+          <option value="UN">UN</option>
+          <option value="KG">KG</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="BA">BA</option>
+        </select>
+      </td>
+      <td>
+        <button class="add-button">+</button>
+        <button class="delete-button">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // ⚡ Attacher désignation automatique et boutons pour toutes les lignes existantes
+  tbody.querySelectorAll("tr").forEach(row => {
+    const codeInput = row.querySelector(".code-article");
+    const designationInput = row.querySelector(".designation");
+    const addBtn = row.querySelector(".add-button");
+    const delBtn = row.querySelector(".delete-button");
+
+    if(codeInput && designationInput){
+      // éviter de dupliquer les listeners
+      codeInput.replaceWith(codeInput.cloneNode(true));
+      const newCodeInput = row.querySelector(".code-article");
+      newCodeInput.addEventListener("blur", () => {
+        const code = newCodeInput.value.trim().toUpperCase();
+        newCodeInput.value = code;
+        if(codeDict[code]){
+          designationInput.value = codeDict[code].designation || codeDict[code];
+        } else {
+          designationInput.value = "Code inconnu";
+        }
+      });
+    }
+
+    if(addBtn) addBtn.onclick = () => ajouterLigneSansOF(addBtn);
+    if(delBtn) delBtn.onclick = () => supprimerContenuLigne(delBtn);
+  });
+});
+
+
+
 
 </script>
 
