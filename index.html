@@ -619,12 +619,18 @@ document.getElementById('save-button').addEventListener('click', async function(
 // Vérifie la quantité et affiche la remarque
 function verifierQuantiteInput(input) {
   const row = input.closest("tr");
-  const code = (row.cells[2].querySelector("input").value || "").trim().toUpperCase();
   const of = (row.cells[4].querySelector("input").value || "").trim().toUpperCase();
-  const key = of;
   const remarqueSpan = row.querySelector(".warning-text");
 
+  // 🔹 Trouver la clé code|OF correspondant à l'OF
+  const key = Object.keys(codeDictSuivi).find(k => k.endsWith("|" + of));
 
+  if (!key) {
+    remarqueSpan.textContent = "";
+    remarqueSpan.classList.add("hidden");
+    updateRemarqueVisibility();
+    return;
+  }
 
   const qteMax = Number(codeDictSuivi[key].qte);
   const qteSaisie = Number(input.value);
@@ -637,8 +643,8 @@ function verifierQuantiteInput(input) {
   }
 
   if (qteSaisie > qteMax) {
- const pourcentage = (qteSaisie / qteMax).toFixed(2); // 2 décimales
-remarqueSpan.textContent = `⚠️ Dépassement : ${pourcentage}%`;
+    const pourcentage = ((qteMax / qteSaisie)*100).toFixed(2);
+    remarqueSpan.textContent = `⚠️ Dépassement : ${pourcentage}%`;
     remarqueSpan.classList.remove("hidden");
   } else {
     remarqueSpan.textContent = "";
