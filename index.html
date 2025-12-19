@@ -621,7 +621,7 @@ function verifierQuantiteInput(input) {
   const row = input.closest("tr");
   const code = (row.cells[2].querySelector("input").value || "").trim().toUpperCase();
   const of = (row.cells[4].querySelector("input").value || "").trim().toUpperCase();
-  const key = code + "|" + of;
+  const key = of;
   const remarqueSpan = row.querySelector(".warning-text");
 
 
