@@ -110,7 +110,7 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 <!-- ============================ -->
 <h3>Suivi des OF Manquants </h3>
 <div style="text-align:right;">
-  <button onclick="telechargerExcelOFManquants()">📊 Télécharger Excel</button>
+  <button onclick="telechargerExcelOFManquants()">📥 Télécharger Excel</button>
 </div>
 
 <!-- Diagramme nombre OF validés par atelier -->
@@ -166,7 +166,7 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 <h2 id="compare-title">Comparaison Physique / Informatique</h2>
 <label>Fichier de référence :</label>
 <input type="file" id="fileRefCompare" accept=".xlsx,.xls"><br><br>
-<label>Fichier Télécharger tout :</label>
+<label>Fichier Tout les Saisies :</label>
 <input type="file" id="fileCheckCompare" accept=".xlsx,.xls"><br><br>
 <button onclick="comparerFichiers()">Comparer et générer Excel</button><br><br>
 <button onclick="filtrerRouge()">Afficher seulement les lignes rouges</button>
@@ -225,37 +225,59 @@ document.getElementById('fileCheckCompare').addEventListener('change',(e)=>{
 });
 
 function comparerFichiers(){
-  if(referenceData.length===0 || checkData.length===0){ alert("Veuillez charger les deux fichiers !"); return; }
-  const tbody=document.getElementById("resultCompareBody");
-  tbody.innerHTML="";
-  const checkSet=new Set(checkData.map(row=>(row['Code + Version']||"")+"|"+(row['OF de destination']||"")));
-  const resultExcel=[];
-  referenceData.forEach(ref=>{
-    const article=ref['Code article'];
-    const of=ref['Numéro OF'];
-    const atelier=ref['Atelier'];
-    const dernierSuivi=ref['Dernier suivi'];
-    const key=article+"|"+of;
-    const existe=checkSet.has(key);
-    const tr=document.createElement("tr");
-    if(!existe) tr.style.backgroundColor="#ff9999";
-    [article,atelier,of,dernierSuivi,existe?"Existant":"Inexistant"].forEach(v=>{
-      const td=document.createElement("td");
-      td.textContent=v;
+  if(referenceData.length===0 || checkData.length===0){ 
+    alert("Veuillez charger les deux fichiers !"); 
+    return; 
+  }
+
+  const tbody = document.getElementById("resultCompareBody");
+  tbody.innerHTML = "";
+
+  // Crée un Set avec uniquement les OF de checkData
+  const checkSet = new Set(checkData.map(row => row['OF de destination'] || ""));
+
+  const resultExcel = [];
+
+  referenceData.forEach(ref => {
+    const article = ref['Code article'];
+    const of = ref['Numéro OF'];
+    const atelier = ref['Atelier'];
+    const dernierSuivi = ref['Dernier suivi'];
+
+    // Comparaison uniquement sur OF
+    const existe = checkSet.has(of);
+
+    const tr = document.createElement("tr");
+    if(!existe) tr.style.backgroundColor = "#ff9999";
+
+    [article, atelier, of, dernierSuivi, existe ? "Existant" : "Inexistant"].forEach(v => {
+      const td = document.createElement("td");
+      td.textContent = v;
       tr.appendChild(td);
     });
+
     tbody.appendChild(tr);
-    resultExcel.push({Article:article,Atelier:atelier,OF:of,'Dernier suivi':dernierSuivi,Existant:existe?"Existant":"Inexistant"});
+
+    resultExcel.push({
+      Article: article,
+      Atelier: atelier,
+      OF: of,
+      'Dernier suivi': dernierSuivi,
+      Existant: existe ? "Existant" : "Inexistant"
+    });
   });
-  const ws=XLSX.utils.json_to_sheet(resultExcel);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"Comparaison");
-  XLSX.writeFile(wb,"Comparaison_OF.xlsx");
+
+  // Génération Excel
+  const ws = XLSX.utils.json_to_sheet(resultExcel);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Comparaison");
+  XLSX.writeFile(wb, "Comparaison_OF.xlsx");
 }
+
 function filtrerRouge(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display=tr.style.backgroundColor==="rgb(255, 153, 153)"?"":"none";});}
 function filtrerBlanc(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display=tr.style.backgroundColor==="rgb(255, 153, 153)"?"none":"";});}
 function resetFiltre(){[...document.querySelectorAll("#resultCompareBody tr")].forEach(tr=>{tr.style.display="";});}
-
+let fichesGlobales = {}; 
 // ============================
 // Firebase et inventaire
 // ============================
@@ -321,30 +343,39 @@ function telechargerExcel(key){
   });
 }
 
-function telechargerExcelAtelier(at,fiches){
-  let lignes=[];
-  Object.values(fiches).forEach(f=>{
-    if(f.atelier==at && f.inventaire){
-      lignes=lignes.concat(f.inventaire.map(l=>({
-        "Code Atelier":f.atelier, Atelier:atelierNoms[f.atelier]||f.atelier,
-        Responsable:f.responsable,Poste:f.poste,Date:f.date,
-          Lot: l.hasOwnProperty("lot") ? l.lot : "",
-    Emplacement: l.hasOwnProperty("emplacement") ? l.emplacement : "",
+function telechargerExcelAtelier(at) {
+  const fiches = fichesGlobales;  // <-- Utilise la variable globale
+  let lignes = [];
 
-    "Code + Version": l.codeVersion || "",
-    Désignation: l.designation || "",
-    "OF de destination": l.ofDest || "",
-    Quantité: l.quantite || "",
-    Unité: l.unite || "",
-    Remarque: l.remarque || ""
+  Object.values(fiches).forEach(f => {
+    if (f.atelier == at && f.inventaire) {
+      lignes = lignes.concat(f.inventaire.map(l => ({
+        "Code Atelier": f.atelier,
+        Atelier: atelierNoms[f.atelier] || f.atelier,
+        Responsable: f.responsable,
+        Poste: f.poste,
+        Date: f.date,
+        Lot: l.lot || "",
+        Emplacement: l.emplacement || "",
+        "Code + Version": l.codeVersion || "",
+        Désignation: l.designation || "",
+        "OF de destination": l.ofDest || "",
+        Quantité: l.quantite || "",
+        Unité: l.unite || "",
+        Remarque: l.remarque || ""
       })));
     }
   });
-  if(lignes.length===0){alert("Aucune ligne pour cet atelier !"); return;}
-  const ws=XLSX.utils.json_to_sheet(lignes);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"Inventaire_Atelier");
-  XLSX.writeFile(wb,`Inventaire_${atelierNoms[at]||at}.xlsx`);
+
+  if (lignes.length === 0) { 
+    alert("Aucune ligne pour cet atelier !"); 
+    return; 
+  }
+
+  const ws = XLSX.utils.json_to_sheet(lignes);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inventaire_Atelier");
+  XLSX.writeFile(wb, `Inventaire_${atelierNoms[at] || at}.xlsx`);
 }
 
 function telechargerTout(){
@@ -375,6 +406,7 @@ function telechargerTout(){
 }
 
 fichesRef.on('value',snapshot=>{
+  fichesGlobales = snapshot.val() || {};
   tbodyFiches.innerHTML="";
   const fiches=snapshot.val()||{};
   const compteAteliers={};
@@ -393,7 +425,8 @@ fichesRef.on('value',snapshot=>{
   });
   atelierSet.forEach(at=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${atelierNoms[at]||at}</td><td><button onclick='telechargerExcelAtelier("${at}", ${JSON.stringify(fiches)})'>Télécharger</button></td>`;
+    tr.innerHTML=` <td>${atelierNoms[at] || at}</td>
+  <td><button onclick='telechargerExcelAtelier("${at}")'>Télécharger</button></td>`;
     excelBody.appendChild(tr);
   });
   updateChart(compteAteliers);
@@ -497,14 +530,26 @@ function updateChart(data){
 function afficherChartOFPrevusVsSaisis() {
   const dictSuivi = {};
 
-  // 1️⃣ compter OF prévus par atelier
-  Object.values(codeDictSuivi).forEach(item => {
-    const at = item.atelier;
-    if (!dictSuivi[at]) dictSuivi[at] = { prevu: 0, saisi: 0 };
-    dictSuivi[at].prevu += 1;
+  // 1️⃣ compter OF prévus uniques par atelier
+  const ofUniquesPrevusParAtelier = {};
+
+  Object.entries(codeDictSuivi).forEach(([key, value]) => {
+    const at = value.atelier;
+    const parts = key.split("|");
+    if (parts.length < 2) return; // sécurité
+    const of = parts[1];
+
+    if (!ofUniquesPrevusParAtelier[at]) ofUniquesPrevusParAtelier[at] = new Set();
+    ofUniquesPrevusParAtelier[at].add(of);
   });
 
-  // 2️⃣ récupérer les OF saisis depuis les fiches Firebase
+  // reporter le nombre d'OF prévus uniques dans dictSuivi
+  Object.keys(ofUniquesPrevusParAtelier).forEach(at => {
+    if (!dictSuivi[at]) dictSuivi[at] = { prevu: 0, saisi: 0 };
+    dictSuivi[at].prevu = ofUniquesPrevusParAtelier[at].size;
+  });
+
+  // 2️⃣ OF saisis : **inchangé**
   fichesRef.get().then(snapshot => {
     const fiches = snapshot.val() || {};
     Object.values(fiches).forEach(fiche => {
@@ -526,17 +571,35 @@ function afficherChartOFPrevusVsSaisis() {
       data: {
         labels,
         datasets: [
-          { label: 'OF prévus', data: dataPrevus, backgroundColor: 'rgba(255, 99, 132, 0.5)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 },
-          { label: 'OF saisis', data: dataSaisis, backgroundColor: 'rgba(75, 192, 75, 0.6)', borderColor: 'rgb(75, 192, 75)', borderWidth: 1 }
+          {
+            label: 'OF prévus',
+            data: dataPrevus,
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'OF saisis',
+            data: dataSaisis,
+            backgroundColor: 'rgba(75, 192, 75, 0.6)',
+            borderColor: 'rgb(75, 192, 75)',
+            borderWidth: 1
+          }
         ]
       },
       options: {
         responsive: false,
         plugins: {
-          title: { display: true, text: 'Suivi OF prévus vs saisis par atelier', font: { size: 16, weight: 'bold' } },
+          title: {
+            display: true,
+            text: 'Suivi OF prévus vs saisis par atelier',
+            font: { size: 16, weight: 'bold' }
+          },
           legend: { position: 'top' }
         },
-        scales: { y: { beginAtZero: true, stepSize: 1 } }
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
       }
     });
   });
