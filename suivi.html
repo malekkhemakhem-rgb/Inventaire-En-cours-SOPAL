@@ -103,7 +103,7 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 
 <h3>Suivi OF prévus vs saisis</h3>
 <div id="chart-of-prevus-container" style="display:flex; justify-content:center; margin-top:20px;">
-  <canvas id="chart-of-prevus" width="900" height="500"></canvas>
+  <canvas id="chart-of-prevus" width="1400" height="650"></canvas>
 </div>
 <!-- ============================ -->
 <!-- Suivi des OF validés -->
@@ -169,8 +169,8 @@ button { margin: 2px; padding: 4px 8px; cursor: pointer; }
 <label>Fichier Tout les Saisies :</label>
 <input type="file" id="fileCheckCompare" accept=".xlsx,.xls"><br><br>
 <button onclick="comparerFichiers()">Comparer et générer Excel</button><br><br>
-<button onclick="filtrerRouge()">Afficher seulement les lignes rouges</button>
-<button onclick="filtrerBlanc()">Afficher seulement les lignes trouvées</button>
+<button onclick="filtrerRouge()">Afficher seulement les lignes inexistants</button>
+<button onclick="filtrerBlanc()">Afficher seulement les lignes existants</button>
 <button onclick="resetFiltre()">Réinitialiser filtre</button>
 
 <table id="resultCompareTable">
