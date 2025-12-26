@@ -261,13 +261,14 @@ atelierInput.addEventListener("input",()=>{responsableInput.value=ateliersRespon
 
 // Firebase
 const firebaseConfig = {
-  apiKey: "VOTRE_API_KEY",
-  authDomain: "VOTRE_PROJECT.firebaseapp.com",
-  databaseURL: "https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app/",
+  apiKey: "AIzaSyA8SzyPTo8ISVyQF3w6vzDJ2eBF-AR5H3k",
+  authDomain: "inventaire-10c24.firebaseapp.com",
+  databaseURL: "https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "inventaire-10c24",
-  storageBucket: "inventaire-10c24.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
+  storageBucket: "inventaire-10c24.firebasestorage.app",
+  messagingSenderId: "859292964342",
+  appId: "1:859292964342:web:ab2ac3bb6f4b4d44df23d7",
+  measurementId: "G-N35JL63VVF"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -468,39 +469,6 @@ function handleOFKey(event,input){
     row.querySelectorAll("input").forEach((inp,i)=>{if(i!==2&&i!==4) inp.disabled=true;});
   }
 }
-function ajouterLigne(bouton) {
-  const ligne = bouton.closest("tr");
-  const nouvelleLigne = ligne.cloneNode(true);
-
-  // Vider les valeurs
-  nouvelleLigne.querySelectorAll("input").forEach(input => {
-    input.value = "";
-    input.classList.remove("error");
-    input.disabled = false;
-  });
-  nouvelleLigne.querySelector("select").selectedIndex = 0;
-  nouvelleLigne.querySelector("select").disabled = false;
-  nouvelleLigne.querySelector(".warning-text").textContent = "";
-  nouvelleLigne.querySelector(".warning-text").classList.add("hidden");
-  nouvelleLigne.querySelector(".add-button").disabled = true;
-
-  // Ajouter la ligne
-  ligne.parentNode.insertBefore(nouvelleLigne, ligne.nextSibling);
-
-  // ⚡ Attacher tous les listeners pour cette ligne
-  initialiserLigne(nouvelleLigne);
-  updateRemarqueVisibility();
-  // ⚡ Attacher la mise à jour automatique du lot et emplacement
-const emplacementInput = row.cells[1].querySelector("input");
-if (emplacementInput) {
-  emplacementInput.oninput = mettreAJourLotEtEmplacement;
-}
-
-// ⚡ Mettre à jour tout de suite après initialisation de la ligne
-mettreAJourLotEtEmplacement();
-
-}
-
 
 function supprimerContenuLigne(bouton) {
   if (!confirm("Supprimer toute la ligne ?")) return;
@@ -562,144 +530,182 @@ function telechargerExcel(){
 }
 
 
-document.getElementById('save-button').addEventListener('click', async function(){
-  const atelier = document.getElementById('atelier').value;
-  const responsable = document.getElementById('responsable').value;
-  const poste = document.getElementById('poste').value;
-  if(!atelier || !responsable || !poste){
-    alert("Veuillez remplir tous les champs !");
-    return;
-  }
+function valInput(row, i){
+  return row.cells[i]?.querySelector("input")?.value || "";
+}
 
-  // =========================
-  // Tableau sans OF (sans doublons)
-  // =========================
-  const tableSansOF = document.getElementById('table-sans-of');
-  if(tableSansOF){
-    const inventaireSansOF = [];
-    let ligneIncomplète = false;
+function valSelect(row, i){
+  return row.cells[i]?.querySelector("select")?.value || "";
+}
 
-    // 🔹 Récupérer existants depuis Firebase
-    const snapshotSansOF = await db.ref('ArticlesSansOF').once('value');
-    const existantsSansOF = snapshotSansOF.val() || {};
-    const clesExistantesSansOF = new Set();
-    Object.values(existantsSansOF).forEach(ligne => {
-      clesExistantesSansOF.add(`${ligne.codeArticle}|${ligne.designation}|${ligne.quantite}|${ligne.unite}|${ligne.atelier}`);
-    });
+function clean(v){ return (v ?? "").toString().trim().toUpperCase(); }
 
-    tableSansOF.querySelectorAll("tbody tr").forEach((row, idx) => {
-      const code = row.cells[0].querySelector('input')?.value.trim();
-      const designation = row.cells[1].querySelector('input')?.value.trim() || "";
-      const quantite = row.cells[2].querySelector('input')?.value || "";
-      const unite = row.cells[3].querySelector('select')?.value || "";
+document.getElementById("save-button").addEventListener("click", async function () {
+  const btn = this;
+  btn.disabled = true;
 
-      if(code){
+  try {
+    const atelier     = clean(document.getElementById("atelier").value);
+    const responsable = clean(document.getElementById("responsable").value);
+    const poste       = clean(document.getElementById("poste").value);
+
+    if(!atelier || !responsable || !poste){
+      alert("Veuillez remplir tous les champs !");
+      btn.disabled = false;
+      return;
+    }
+
+    /* =========================
+       TABLEAU SANS OF
+    ========================= */
+    const tableSansOF = document.getElementById("table-sans-of");
+    if(tableSansOF){
+      const tbodySansOF = tableSansOF.querySelector("tbody");
+      for(const row of tbodySansOF.querySelectorAll("tr")){
+        const code = clean(valInput(row,0));
+        if(!code) continue;
+
+        const designation = clean(valInput(row,1));
+        const quantite    = valInput(row,2);
+        const unite       = valSelect(row,3);
+
         if(!designation || !quantite || !unite){
-          alert(`Veuillez remplir toutes les cellules obligatoires de la ligne ${idx + 1} du tableau "sans OF" !`);
-          ligneIncomplète = true;
+          alert("Une ligne du tableau Sans OF est incomplète");
+          btn.disabled = false;
           return;
         }
 
-        const cleUnique = `${code}|${designation}|${quantite}|${unite}|${atelier}`;
-        if(!clesExistantesSansOF.has(cleUnique)){
-          inventaireSansOF.push({
-            codeArticle: code,
-            designation,
-            quantite,
-            unite,
-            atelier,
-            responsable,
-            date: new Date().toLocaleString()
+        if(row.dataset.key){
+          // ✅ Modification uniquement pour lignes chargées
+          const snapshot = await db.ref("ArticlesSansOF/" + row.dataset.key).once("value");
+          const ancien = snapshot.val();
+          if(
+            ancien.codeArticle === code &&
+            ancien.designation === designation &&
+            ancien.quantite == quantite &&
+            ancien.unite === unite &&
+            ancien.atelier === atelier
+          ){
+            continue; // ✅ Tout est identique → ne rien faire
+          }
+
+          await db.ref("ArticlesSansOF/" + row.dataset.key).update({
+            quantite, unite, date: new Date().toLocaleString()
           });
-          clesExistantesSansOF.add(cleUnique);
-        }
-      }
-    });
+        } else {
+          // ✅ Nouvelle ligne push seulement si aucune ligne identique dans Firebase
+          const snap = await db.ref("ArticlesSansOF").orderByChild("atelier").equalTo(atelier).once("value");
+          const existants = snap.val() || {};
+          const doublonFirebase = Object.values(existants).some(l =>
+            l.codeArticle === code &&
+            l.designation === designation &&
+            l.quantite == quantite &&
+            l.unite === unite &&
+            l.atelier === atelier
+          );
+          if(doublonFirebase) continue;
 
-    if(ligneIncomplète) return;
-
-    if(inventaireSansOF.length > 0){
-      const refSansOF = db.ref('ArticlesSansOF');
-      inventaireSansOF.forEach(item => {
-        const newKey = refSansOF.push().key;
-        refSansOF.child(newKey).set(item);
-      });
-      alert(`✅ ${inventaireSansOF.length} article(s) sans OF enregistrés (doublons ignorés) !`);
-    } 
-  }
-
-  // =========================
-  // Tableau principal (sans doublons)
-  // =========================
-  const table = document.getElementById('table-inventaire');
-  const inventaire = [];
-  for(let i = 1; i < table.rows.length; i++){
-    const row = table.rows[i];
-    inventaire.push({
-      lot: row.cells[0].querySelector('input')?.value || "",
-      emplacement: row.cells[1].querySelector('input')?.value || "",
-      codeVersion: row.cells[2].querySelector('input')?.value || "",
-      designation: row.cells[3].querySelector('input')?.value || "",
-      ofDest: row.cells[4].querySelector('input')?.value || "",
-      quantite: row.cells[5].querySelector('input')?.value || "",
-      unite: row.cells[6].querySelector('select')?.value || "",
-      remarque: row.cells[7].querySelector('.warning-text')?.textContent || ""
-    });
-  }
-
-  function inventaireComplet(inventaire){
-    const champsOptionnels = ["unite","remarque"];
-    for(let i = 0; i < inventaire.length; i++){
-      const ligne = inventaire[i];
-      for(const champ in ligne){
-        if(champsOptionnels.includes(champ)) continue;
-        if(ligne[champ] === "" || ligne[champ] === null || ligne[champ] === undefined){
-          alert(`Ligne ${i+1} : Le champ "${champ}" est obligatoire et doit être rempli.`);
-          return false;
+          if(!row.dataset.tempId){
+            row.dataset.tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2,5);
+            const newRef = await db.ref("ArticlesSansOF").push();
+            row.dataset.key = newRef.key;
+            await newRef.set({
+              atelier, codeArticle: code, designation, quantite, unite,
+              responsable, date: new Date().toLocaleString()
+            });
+          }
         }
       }
     }
-    return true;
-  }
 
-  if(!inventaireComplet(inventaire)) return;
-
-  // 🔹 Filtrer les doublons existants dans Firebase
-  const snapshotPrincipal = await fichesRef.once('value');
-  const existantsPrincipal = snapshotPrincipal.val() || {};
-  const clesExistantesPrincipal = new Set();
-  Object.values(existantsPrincipal).forEach(fiche => {
-    if(fiche.inventaire){
-      fiche.inventaire.forEach(ligne => {
-        clesExistantesPrincipal.add(`${ligne.lot}|${ligne.emplacement}|${ligne.codeVersion}|${ligne.designation}|${ligne.ofDest}|${ligne.quantite}|${ligne.unite}`);
-      });
+    /* =========================
+       TABLEAU INVENTAIRE
+    ========================= */
+    const table = document.getElementById("table-inventaire");
+    if(!table){
+      alert("Table inventaire introuvable !");
+      btn.disabled = false;
+      return;
     }
-  });
 
-  const nouvellesLignesInventaire = inventaire.filter(ligne => {
-    const cleUnique = `${ligne.lot}|${ligne.emplacement}|${ligne.codeVersion}|${ligne.designation}|${ligne.ofDest}|${ligne.quantite}|${ligne.unite}`;
-    return !clesExistantesPrincipal.has(cleUnique);
-  });
+    for(let i=1;i<table.rows.length;i++){
+      const row = table.rows[i];
+      const ligne = {
+        lot: clean(valInput(row,0)),
+        emplacement: clean(valInput(row,1)),
+        codeVersion: clean(valInput(row,2)),
+        designation: clean(valInput(row,3)),
+        ofDest: clean(valInput(row,4)),
+        quantite: valInput(row,5),
+        unite: valSelect(row,6),
+        remarque: row.cells[7]?.textContent || ""
+      };
 
-  if(nouvellesLignesInventaire.length === 0){
-    alert("ℹ️ Aucun nouvel enregistrement dans le tableau principal (tout est doublon).");
-    return;
+      if(!ligne.lot || !ligne.emplacement || !ligne.codeVersion || !ligne.designation || !ligne.ofDest || !ligne.quantite){
+        alert(`Ligne ${i} inventaire incomplète`);
+        btn.disabled = false;
+        return;
+      }
+
+      if(row.dataset.ficheKey && row.dataset.ligneIndex !== undefined){
+        // ✅ Modification seulement si ligne chargée depuis Firebase
+        const snapshot = await fichesRef.child(row.dataset.ficheKey + "/inventaire/" + row.dataset.ligneIndex).once("value");
+        const ancien = snapshot.val();
+        if(
+          ancien.lot === ligne.lot &&
+          ancien.emplacement === ligne.emplacement &&
+          ancien.codeVersion === ligne.codeVersion &&
+          ancien.designation === ligne.designation &&
+          ancien.ofDest === ligne.ofDest &&
+          ancien.quantite == ligne.quantite &&
+          ancien.unite === ligne.unite
+        ){
+          continue; // ✅ Tout est identique → ne rien faire
+        }
+
+        await fichesRef.child(row.dataset.ficheKey + "/inventaire/" + row.dataset.ligneIndex).update(ligne);
+      } else {
+        // ✅ Nouvelle ligne push seulement si aucune ligne identique dans Firebase
+        const snapFiches = await fichesRef.once("value");
+        const fiches = snapFiches.val() || {};
+        const doublonFirebase = Object.values(fiches).some(f =>
+          f.inventaire?.some(l =>
+            l.lot === ligne.lot &&
+            l.emplacement === ligne.emplacement &&
+            l.codeVersion === ligne.codeVersion &&
+            l.designation === ligne.designation &&
+            l.ofDest === ligne.ofDest &&
+            l.quantite == ligne.quantite &&
+            l.unite === ligne.unite &&
+            clean(f.atelier) === atelier
+          )
+        );
+        if(doublonFirebase) continue;
+
+        if(!row.dataset.tempId){
+          row.dataset.tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2,5);
+          const newRef = await fichesRef.push();
+          row.dataset.key = newRef.key;
+          await newRef.set({
+            atelier, responsable, poste, date: new Date().toLocaleString(),
+            inventaire: [ligne]
+          });
+        }
+      }
+    }
+
+    alert("✅ Enregistrement terminé !");
+  } catch(err){
+    console.error(err);
+    alert("❌ Erreur : " + err);
+  } finally {
+    btn.disabled = false;
   }
-
-  // 🔹 Enregistrement dans Firebase
-  const fiche = {
-    atelier,
-    responsable,
-    poste,
-    date: new Date().toLocaleString(),
-    inventaire: nouvellesLignesInventaire
-  };
-
-  const newKey = fichesRef.push().key;
-  fichesRef.child(newKey).set(fiche)
-    .then(()=>alert(`✅ Fiche enregistrée avec ${nouvellesLignesInventaire.length} nouvelle(s) ligne(s) inventaire !`))
-    .catch(err=>alert("❌ Erreur lors de l'enregistrement : "+err));
 });
+
+
+
+
 
 
 // Vérifie la quantité et affiche la remarque
@@ -912,113 +918,97 @@ function initialiserLigne(row) {
   }
 }
 
-document.getElementById('charger-button').addEventListener('click', function () {
+document.getElementById('charger-button').addEventListener('click', async function () {
+  const responsableInput = clean(document.getElementById('responsable').value);
+  const atelierInput     = clean(document.getElementById('atelier').value);
 
-  const responsable = document.getElementById('responsable').value;
-  const atelier = document.getElementById('atelier').value;
-
-  if (!responsable || !atelier) {
+  if (!responsableInput || !atelierInput){
     alert("Veuillez sélectionner l'atelier et le responsable.");
     return;
   }
 
-  if (!confirm(`Charger les saisies précédentes de ${responsable} ?`)) return;
+  if (!confirm(`Charger les saisies précédentes de ${responsableInput} ?`)) return;
 
-  // 1️⃣ Charger le premier tableau (table-inventaire)
-  fichesRef
-    .orderByChild('responsable')
-    .equalTo(responsable)
-    .once('value')
-    .then(snapshot => {
+  try{
+    // =========================
+    // TABLEAU INVENTAIRE
+    // =========================
+    const snapshot = await fichesRef.once('value');
+    const tbody = document.querySelector('#table-inventaire tbody');
+    tbody.innerHTML = "";
 
-      const tbody = document.querySelector('#table-inventaire tbody');
-      tbody.innerHTML = ""; // Vider le tableau actuel
-
-      if (snapshot.exists()) {
-        snapshot.forEach(ficheSnap => {
-          const fiche = ficheSnap.val();
-
-          if (fiche.atelier !== atelier) return;
-
-          fiche.inventaire.forEach(ligne => {
-            const tr = document.createElement('tr');
-
-            tr.innerHTML = `
-              <td><input type="text" value="${ligne.lot || ''}"></td>
-              <td><input type="text" value="${ligne.emplacement || ''}"></td>
-              <td><input type="text" value="${ligne.codeVersion || ''}"></td>
-              <td><input type="text" value="${ligne.designation || ''}" readonly></td>
-              <td><input type="text" value="${ligne.ofDest || ''}"></td>
-              <td><input type="text" value="${ligne.quantite || ''}"></td>
-              <td>
-                <select>
-                  <option value=""></option>
-                  <option value="UN" ${ligne.unite === "UN" ? "selected" : ""}>UN</option>
-                  <option value="KG" ${ligne.unite === "KG" ? "selected" : ""}>KG</option>
-                  <option value="M"  ${ligne.unite === "M"  ? "selected" : ""}>M</option>
-                  <option value="L"  ${ligne.unite === "L"  ? "selected" : ""}>L</option>
-                  <option value="BA" ${ligne.unite === "BA" ? "selected" : ""}>BA</option>
-                </select>
-              </td>
-              <td class="remarque-cell ${ligne.remarque ? '' : 'hidden'}">
-                <span class="warning-text">${ligne.remarque || ''}</span>
-              </td>
-              <td class="no-print">
-                <button class="add-button" onclick="ajouterLigne(this)">+</button>
-                <button class="delete-button" onclick="supprimerContenuLigne(this)">🗑️</button>
-              </td>
-            `;
-            tbody.appendChild(tr);
-            ajouterEcouteQuantite(tr);
-          });
-        });
-      }
-
-      // 2️⃣ Charger le deuxième tableau (ArticlesSansOF)
-     // Charger le deuxième tableau (ArticlesSansOF)
-const tbodySansOF = document.querySelector('#table-sans-of tbody');
-tbodySansOF.innerHTML = ""; // Vider le tableau actuel
-
-firebase.database().ref('ArticlesSansOF')
-  .orderByChild('responsable')
-  .equalTo(responsable)
-  .once('value')
-  .then(snapshotSansOF => {
-    if (snapshotSansOF.exists()) {
-      snapshotSansOF.forEach(articleSnap => {
-        const article = articleSnap.val();
-
-        if (article.atelier !== atelier) return; // filtrer par atelier si nécessaire
-
+    Object.entries(snapshot.val() || {}).forEach(([ficheKey, fiche]) => {
+      if(clean(fiche.responsable) !== responsableInput || clean(fiche.atelier) !== atelierInput) return;
+      (fiche.inventaire || []).forEach((ligne, idx) => {
         const tr = document.createElement('tr');
+        tr.dataset.ficheKey = ficheKey;
+        tr.dataset.ligneIndex = idx;
         tr.innerHTML = `
-          <td><input type="text" value="${article.codeArticle || ''}"></td>
-          <td><input type="text" value="${article.designation || ''}" readonly></td>
-          <td><input type="text" value="${article.quantite || ''}"></td>
+          <td><input type="text" value="${ligne.lot || ''}"></td>
+          <td><input type="text" value="${ligne.emplacement || ''}"></td>
+          <td><input type="text" value="${ligne.codeVersion || ''}"></td>
+          <td><input type="text" value="${ligne.designation || ''}" readonly></td>
+          <td><input type="text" value="${ligne.ofDest || ''}"></td>
+          <td><input type="text" value="${ligne.quantite || ''}"></td>
           <td>
             <select>
               <option value=""></option>
-              <option value="UN" ${article.unite === "UN" ? "selected" : ""}>UN</option>
-              <option value="KG" ${article.unite === "KG" ? "selected" : ""}>KG</option>
-              <option value="M"  ${article.unite === "M"  ? "selected" : ""}>M</option>
-              <option value="L"  ${article.unite === "L"  ? "selected" : ""}>L</option>
-              <option value="BA" ${article.unite === "BA" ? "selected" : ""}>BA</option>
+              <option value="UN" ${ligne.unite === "UN" ? "selected" : ""}>UN</option>
+              <option value="KG" ${ligne.unite === "KG" ? "selected" : ""}>KG</option>
+              <option value="M"  ${ligne.unite === "M" ? "selected" : ""}>M</option>
+              <option value="L"  ${ligne.unite === "L" ? "selected" : ""}>L</option>
+              <option value="BA" ${ligne.unite === "BA" ? "selected" : ""}>BA</option>
             </select>
           </td>
+          <td class="remarque-cell ${ligne.remarque ? '' : 'hidden'}">
+            <span class="warning-text">${ligne.remarque || ''}</span>
+          </td>
+          <td class="no-print">
+            <button class="add-button" onclick="ajouterLigne(this)">+</button>
+            <button class="delete-button" onclick="supprimerContenuLigne(this)">🗑️</button>
+          </td>
         `;
-        tbodySansOF.appendChild(tr);
+        tbody.appendChild(tr);
+        ajouterEcouteQuantite(tr);
       });
-    }
-  })
-  .catch(err => {
-    console.error("Erreur chargement ArticlesSansOF :", err);
-  });
-      updateRemarqueVisibility();
-      alert("✅ Saisies chargées avec succès !");
-    })
-    .catch(err => {
-      alert("❌ Erreur chargement : " + err.message);
     });
+
+    // =========================
+    // TABLEAU ARTICLES SANS OF
+    // =========================
+    const snapshotSansOF = await db.ref('ArticlesSansOF').once('value');
+    const tbodySansOF = document.querySelector('#table-sans-of tbody');
+    tbodySansOF.innerHTML = "";
+
+    Object.entries(snapshotSansOF.val() || {}).forEach(([key, article]) => {
+      if(clean(article.responsable) !== responsableInput || clean(article.atelier) !== atelierInput) return;
+
+      const tr = document.createElement('tr');
+      tr.dataset.key = key;
+      tr.innerHTML = `
+        <td><input type="text" value="${article.codeArticle || ''}"></td>
+        <td><input type="text" value="${article.designation || ''}" readonly></td>
+        <td><input type="text" value="${article.quantite || ''}"></td>
+        <td>
+          <select>
+            <option value=""></option>
+            <option value="UN" ${article.unite === "UN" ? "selected" : ""}>UN</option>
+            <option value="KG" ${article.unite === "KG" ? "selected" : ""}>KG</option>
+            <option value="M"  ${article.unite === "M" ? "selected" : ""}>M</option>
+            <option value="L"  ${article.unite === "L" ? "selected" : ""}>L</option>
+            <option value="BA" ${article.unite === "BA" ? "selected" : ""}>BA</option>
+          </select>
+        </td>
+      `;
+      tbodySansOF.appendChild(tr);
+    });
+
+    updateRemarqueVisibility();
+    alert("✅ Saisies chargées avec succès !");
+  } catch(err){
+    console.error(err);
+    alert("❌ Erreur lors du chargement : " + err.message);
+  }
 });
 
 function ajouterLigneSansOF(bouton) { 
