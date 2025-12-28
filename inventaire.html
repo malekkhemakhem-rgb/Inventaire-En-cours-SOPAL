@@ -1,0 +1,1206 @@
+<!DOCTYPE html> 
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Fiche d’inventaire SOPAL</title>
+<script src="codeDict.js"></script>
+<script src="codeOFDict.js"></script>
+<script src="codeOFDictSecondaire.js"></script>
+<script src="postConsoCodes.js"></script>
+<script src="stockEncoursData.js"></script>
+<script src="codeDictSuivi.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<style>
+@font-face { font-family: 'Arial Narrow'; src: local('Arial Narrow'), local('ArialNarrow'); }
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('images.jpg') no-repeat center center;
+  background-size: cover;
+  filter: blur(16px); /* plus flou */
+  z-index: -1;
+}
+
+body { font-family: 'Arial Narrow', Arial, sans-serif; margin: 10px; }
+.header { display: flex; justify-content: space-between; align-items: center; border: 1px solid black; padding: 10px; }
+.logo { font-weight: bold; font-size: 22px; }
+.title-block { text-align: center; flex: 1; }
+.title-block h3 { margin: 0; }
+.section { margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+th, td { border: 2px solid black; padding: 6px; font-size: 14px; text-align: center; word-wrap: break-word; font-family: 'Arial Narrow', Arial, sans-serif; }
+th { background-color: white; color: black; font-weight: bold; }
+th:nth-child(1), td:nth-child(1) { width: 2%; }
+th:nth-child(5), td:nth-child(5) { width: 13%; }
+th:nth-child(6), td:nth-child(6) { width: 6%; }
+th:nth-child(3), td:nth-child(3) { width: 9%; }
+th:nth-child(4), td:nth-child(4) { width: 40%; }
+th:nth-child(2), td:nth-child(2) { width: 8%; }
+th:nth-child(7), td:nth-child(7) { width: 6%; }
+input[type="text"], input[type="number"]{ width:100%; height:100%; border:none; background:transparent; text-transform:uppercase; text-align:center; font-size:14px; padding:0; margin:0; box-sizing:border-box; outline:none; }
+select{ width:100%; height:100%; border:none; background:transparent; text-align:center; font-size:14px; padding:0; margin:0; box-sizing:border-box; outline:none; }
+.add-button,.delete-button{ font-size:18px; border:none; padding:4px 10px; cursor:pointer; border-radius:4px; }
+.add-button{ background:#28a745; color:#fff; }
+.add-button:disabled{ background:grey; cursor:not-allowed; }
+.add-button:hover:not(:disabled){ background:#218838; }
+.delete-button{ background:#dc3545; color:#fff; margin-left:5px; }
+.delete-button:hover{ background:#c82333; }
+.error{ background:#fdd; color:red; }
+.hidden{ display:none; }
+.warning-text{ color:red; font-weight:bold; }
+.footer-code{ text-align:right; font-size:12px; margin-top:10px; }
+.container{ border:1.5px solid black; padding:20px; font-family:"Times New Roman", Times, serif; }
+.title-block,.section,.checkboxes label,.header,h3,strong,label{ font-family:'Arial Narrow', Arial, sans-serif; }
+.screen-only, .print-only { display: table-cell; }
+#save-button {
+  background: rgba(255, 255, 255, 0.85);   /* bouton clair */
+  color: #0a3d62;
+  border: 2px solid transparent;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* contour dynamique */
+#save-button::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    #00c6ff,
+    #0072ff,
+    #00c6ff
+  );
+  background-size: 300% 100%;
+  z-index: -1;
+  animation: borderMove 3s linear infinite;
+}
+/* Tableau Inventaire et Articles sans OF */
+#table-inventaire, #table-sans-of {
+  background-color: white; /* fond blanc */
+}
+
+#table-inventaire th, #table-inventaire td,
+#table-sans-of th, #table-sans-of td {
+  background-color: white; /* cellules blanches */
+}
+#table-inventaire th, #table-sans-of th {
+  background-color: #f9f9f9;
+}
+
+
+/* hover */
+#save-button:hover {
+  background: white;
+  transform: scale(1.05);
+}
+
+/* animation contour */
+@keyframes borderMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+@media print {
+ /* Cacher uniquement les boutons et actions */
+  .no-print,
+  button,
+  .print-button {
+    display: none !important;
+  }
+
+  /* Forcer l'affichage du bloc "sans OF" à l'impression */
+  #bloc-sans-of {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Forcer l'affichage du tableau sans OF */
+  #table-sans-of {
+    display: table !important;
+  }
+
+  #table-sans-of thead {
+    display: table-header-group !important;
+  }
+
+  #table-sans-of tbody {
+    display: table-row-group !important;
+  }
+
+  /* S'assurer que le tableau principal s'imprime aussi */
+  #table-inventaire {
+    display: table !important;
+  }
+
+  /* Supprimer le fond flou à l'impression */
+  body::before {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+   .no-print, button, .print-button { display: none !important; }
+  body::before { display: none !important; }
+  body { background: white !important; }
+
+  /* Définir en-tête et pied pour toutes les pages */
+  header { 
+    display: block;
+    position: running(pageHeader);
+  }
+  footer { 
+    display: block;
+    position: running(pageFooter);
+  }
+
+  /* Styles du tableau pour impression */
+  #table-inventaire, #table-sans-of { display: table !important; page-break-inside: auto; }
+  #table-inventaire thead, #table-sans-of thead { display: table-header-group !important; }
+  #table-inventaire tbody, #table-sans-of tbody { display: table-row-group !important; }
+
+  /* Répéter header et footer */
+  @page {
+    margin: 20mm 15mm 20mm 15mm;
+    @top-center { content: element(pageHeader); }
+    @bottom-center { content: element(pageFooter); }
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<header class="header">
+  <div class="logo"><img src="image.png" alt="Groupe SOPAL" style="height:32px;"></div>
+  <div class="title-block">
+    <h3>Fiche d’inventaire des encours/Atelier</h3>
+    Année : <input type="text" style="width:80px;"> &nbsp;&nbsp; Page : <input type="text" style="width:30px;">
+  </div>
+</header>
+
+<div class="section">
+<strong>Atelier :</strong>
+<input list="listeAteliers" id="atelier" style="width:150px;" required>
+<datalist id="listeAteliers"></datalist>
+
+&nbsp;&nbsp;<strong>Responsable d’inventaire :</strong>
+<input type="text" id="responsable" style="width:250px;" readonly required>
+&nbsp;&nbsp;<strong>Poste de travail :</strong>
+<input type="text" id="poste" style="width:150px;" required>
+</div>
+<style>
+  /* Tableau Articles sans OF */
+  #table-sans-of th, #table-sans-of td {
+    text-align: center;
+    padding: 6px;
+    border: 1px solid black;
+    word-wrap: break-word;
+  }
+
+  /* Largeurs des colonnes */
+  #table-sans-of th:nth-child(1),
+  #table-sans-of td:nth-child(1) { width: 20%; } /* Code Article */
+  
+  #table-sans-of th:nth-child(2),
+  #table-sans-of td:nth-child(2) { width: 40%; } /* Désignation */
+  
+  #table-sans-of th:nth-child(3),
+  #table-sans-of td:nth-child(3) { width: 15%; } /* Quantité */
+  
+  #table-sans-of th:nth-child(4),
+  #table-sans-of td:nth-child(4) { width: 15%; } /* Unité */
+  
+  #table-sans-of th:nth-child(5),
+  #table-sans-of td:nth-child(5) { width: 10%; } /* Boutons */
+</style>
+
+<script>
+
+
+
+// Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyA8SzyPTo8ISVyQF3w6vzDJ2eBF-AR5H3k",
+  authDomain: "inventaire-10c24.firebaseapp.com",
+  databaseURL: "https://inventaire-10c24-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "inventaire-10c24",
+  storageBucket: "inventaire-10c24.firebasestorage.app",
+  messagingSenderId: "859292964342",
+  appId: "1:859292964342:web:ab2ac3bb6f4b4d44df23d7",
+  measurementId: "G-N35JL63VVF"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const fichesRef = db.ref('fiches');
+</script>
+
+<div class="section checkboxes">
+  <label> Produit semi fini</label> <input type="checkbox">
+  <label> Produit fini</label> <input type="checkbox">
+  <label> Composants</label> <input type="checkbox">
+  <label>MP</label> <input type="checkbox">
+  <label> Emballage</label> <input type="checkbox">
+  <label> Consommable</label> <input type="checkbox">
+  <label>Autres <input type="text" style="width:100px;"></label>
+</div>
+
+<table id="table-inventaire">
+<thead>
+<tr>
+  <th>Lot</th>
+  <th>Inventaire/emplacement</th>
+  <th>Code + Version</th>
+  <th>Désignation</th>
+  <th>OF de destination</th>
+  <th>Quantité</th>
+  <th>Unité</th>
+  <th class="remarque-header hidden">Remarque</th>
+  <th class="no-print">➕ / 🗑️</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><input type="text"></td>
+  <td><input type="text"></td>
+  <td><input type="text" onblur="handleCodeKey(event,this)"></td>
+  <td><input type="text" readonly></td>
+  <td><input type="text" onblur="handleOFKey(event,this)"></td>
+  <td><input type="text"></td>
+  <td>
+    <select>
+      <option value="" selected disabled hidden></option>
+      <option value="UN">UN</option>
+      <option value="KG">KG</option>
+      <option value="M">M</option>
+      <option value="L">L</option>
+      <option value="BA">BA</option>
+    </select>
+  </td>
+  <td class="remarque-cell hidden"><span class="warning-text"></span></td>
+  <td class="no-print">
+    <button class="add-button" onclick="ajouterLigne(this)" disabled>+</button>
+    <button class="delete-button" onclick="supprimerContenuLigne(this)">🗑️</button>
+  </td>
+</tr>
+</tbody>
+</table>
+<div class="section no-print hidden" id="bloc-sans-of" style="margin-top:20px; border:1px solid #ccc; padding:10px; display:none;">
+  <h4>⚠️ Composants sans OF 🛠️</h4>
+  <table id="table-sans-of">
+    <thead>
+      <tr>
+        <th>Code Article</th>
+        <th>Désignation</th>
+        <th>Quantité</th>
+        <th>Unité</th>
+        <th>➕ / 🗑️</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" class="code-article"></td>
+        <td><input type="text" class="designation" readonly></td>
+        <td><input type="number"></td>
+        <td>
+          <select>
+            <option value="" selected disabled hidden></option>
+            <option value="UN">UN</option>
+            <option value="KG">KG</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="BA">BA</option>
+          </select>
+        </td>
+        <td>
+          <button class="add-button">+</button>
+          <button class="delete-button">🗑️</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+
+<!-- Bloc pour afficher le nombre d'OF manquants et bouton Valider -->
+<div id="of-missing-block" class="no-print" style="margin-top:10px; display:none; border:1px solid #ccc; padding:10px;">
+  <span id="of-missing-count"></span>
+  <button id="valider-of-missing">Valider tout</button>
+</div>
+<div class="no-print" style="margin-top:20px;">
+  <button id="btn-inserer-sans-of" class="add-button"> 🛠️ Insertion des composants sans OF</button>
+</div>
+<!-- Bouton Enregistrer -->
+<div class="no-print" style="text-align:center; margin-top:5px; display:flex; flex-direction:column; gap:10px; align-items:center;">
+  <button id="save-button">💾 Enregistrer</button>
+  <button id="terminer-button">✅ Terminer saisie</button>
+</div>
+
+<div class="no-print"style="text-align:right; margin-top:5px;">
+  <button class="print-button" onclick="window.print()" style="margin-top:2cm;">🖨️ Imprimer la fiche</button>
+  <button onclick="telechargerExcel()" style="margin-top:10px;">📊 Télécharger Excel</button>
+  <button id="charger-button">📂 Mes saisies précédentes</button>
+  <button onclick="Suivi()">👁️Suivi</button>
+  
+</div>
+<footer class="footer-code">INT51FE13.2</footer>
+
+
+<script>
+  // ===============================
+// 🔐 CONTROLE SESSION UTILISATEUR
+// ===============================
+  const session = JSON.parse(localStorage.getItem("userConnecte"));
+
+if (!session) {
+  alert("Accès interdit. Veuillez vous connecter.");
+  window.location.href = "login.html";
+}
+
+// Données utilisateur
+const USER_NOM = session.nom;
+const USER_ATELIERS = session.ateliers; 
+// ===============================
+// 🔒 FILTRAGE DES ATELIERS
+// ===============================
+const atelierInput = document.getElementById("atelier");
+const responsableInput = document.getElementById("responsable");
+const listeAteliers = document.getElementById("listeAteliers");
+
+// Pré-remplir responsable
+responsableInput.value = USER_NOM;
+responsableInput.readOnly = true;
+
+// Injecter uniquement les ateliers autorisés
+listeAteliers.innerHTML = "";
+USER_ATELIERS.forEach(a => {
+  const opt = document.createElement("option");
+  opt.value = a;
+  listeAteliers.appendChild(opt);
+});
+
+// Bloquer saisie libre
+atelierInput.addEventListener("input", () => {
+  if (!USER_ATELIERS.includes(atelierInput.value)) {
+    bloquerPage(`⛔ Accès interdit à l'atelier ${atelierInput.value}`);
+  }
+});
+
+
+// ===== Fonctions principales =====
+function updateRemarqueVisibility() {
+  const anyVisible = [...document.querySelectorAll('.remarque-cell .warning-text')]
+      .some(span=>span&&span.textContent.trim()!=='');
+  document.querySelectorAll('.remarque-header').forEach(th=>th.classList.toggle('hidden',!anyVisible));
+  document.querySelectorAll('.remarque-cell').forEach(td=>td.classList.toggle('hidden',!anyVisible));
+}
+
+function handleCodeKey(event,input){
+  const row=input.closest("tr");
+  const code=input.value.trim().toUpperCase();
+  input.value=code;
+  const designationInput=row.cells[3].querySelector('input');
+  const ofInput=row.cells[4].querySelector('input');
+  const addButton=row.querySelector(".add-button");
+
+  if(codeDict[code]){
+    const data=codeDict[code];
+    designationInput.value=data.designation||data;
+    designationInput.classList.remove("error");
+    input.classList.remove("error");
+    if(postConsoCodes.includes(code)){
+      ofInput.value="Article non inventorier";
+      addButton.disabled=true;
+      row.querySelectorAll("input").forEach((inp,i)=>{if(i!==2) inp.disabled=true;});
+    } else {
+      addButton.disabled=false;
+      ofInput.disabled=false;
+    }
+  } else {
+    designationInput.value="Code inconnu";
+    designationInput.classList.add("error");
+    input.classList.add("error");
+    addButton.disabled=true;
+  }
+}
+
+function handleOFKey(event,input){
+  const row=input.closest("tr");
+  const codeInput=row.cells[2].querySelector('input');
+  const code=codeInput.value.trim().toUpperCase();
+  const of=input.value.trim().toUpperCase();
+  input.value=of;
+  const addButton=row.querySelector(".add-button");
+  const remarqueSpan=row.querySelector(".warning-text");
+
+  if(postConsoCodes.includes(code)){
+    input.value="Article non inventorier";
+    addButton.disabled=true;
+    return;
+  }
+
+  const isExactMatch=codeOFDict[code]?.includes(of);
+  const isOFInSecondaire=codeOFDictSecondaire[code]?.includes(of);
+  const encoursKey=code+"|"+of;
+  const isInEncours=stockEncoursData.hasOwnProperty(encoursKey);
+  const isValid=isExactMatch||isOFInSecondaire||isInEncours;
+
+  if(stockEncoursData[encoursKey]!==undefined&&stockEncoursData[encoursKey]<0){
+    remarqueSpan.textContent="⚠️ manque saisie MAG";
+    remarqueSpan.classList.remove("hidden");
+  } else {
+    remarqueSpan.textContent="";
+    remarqueSpan.classList.add("hidden");
+  }
+
+  updateRemarqueVisibility();
+
+  if(isValid){
+    input.classList.remove("error");
+    codeInput.classList.remove("error");
+    addButton.disabled=false;
+    row.querySelectorAll("input").forEach(inp=>inp.disabled=false);
+  } else {
+    input.classList.add("error");
+    codeInput.classList.add("error");
+    alert("OF ne correspond pas au code");
+    addButton.disabled=true;
+    row.querySelectorAll("input").forEach((inp,i)=>{if(i!==2&&i!==4) inp.disabled=true;});
+  }
+}
+
+function supprimerContenuLigne(bouton) {
+  if (!confirm("Supprimer toute la ligne ?")) return;
+
+  const ligne = bouton.closest("tr");
+  if (ligne) ligne.remove();
+
+  updateRemarqueVisibility();
+}
+
+
+function telechargerExcel(){
+  const table=document.getElementById('table-inventaire');
+  const tableSansOF=document.getElementById('table-sans-of');
+  const atelier=document.getElementById('atelier').value||"Atelier";
+  const responsable=document.getElementById('responsable').value||"Responsable";
+  
+  let wb=XLSX.utils.book_new();
+  wb.Props={ Title:"Fiche d'inventaire", Subject:"Inventaire SOPAL", Author:"SOPAL", CreatedDate:new Date() };
+  
+  let data=[];
+  
+  // 🔹 En-têtes du tableau principal
+  const headers=[];
+  table.querySelectorAll("thead th").forEach(th=>headers.push(th.innerText.trim()));
+  data.push(headers);
+
+  // 🔹 Lignes du tableau principal
+  table.querySelectorAll("tbody tr").forEach(tr=>{
+    const row=[];
+    tr.querySelectorAll("td").forEach(td=>{
+      const input=td.querySelector("input, select");
+      row.push(input?input.value:td.innerText.trim());
+    });
+    data.push(row);
+  });
+
+  // 🔹 Lignes du tableau "sans OF" (ajoutées après une ligne vide pour séparer)
+  if(tableSansOF){
+    const headersSansOF = [];
+    tableSansOF.querySelectorAll("thead th").forEach(th=>headersSansOF.push(th.innerText.trim()));
+    data.push([]); // ligne vide pour séparer
+    data.push(headersSansOF);
+
+    tableSansOF.querySelectorAll("tbody tr").forEach(tr=>{
+      const row=[];
+      tr.querySelectorAll("td").forEach(td=>{
+        const input=td.querySelector("input, select");
+        row.push(input?input.value:td.innerText.trim());
+      });
+      data.push(row);
+    });
+  }
+
+  // 🔹 Génération Excel
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb,ws,"Inventaire");
+  XLSX.writeFile(wb,`Inventaire_${atelier}_${responsable}.xlsx`);
+}
+
+
+function valInput(row, i){
+  return row.cells[i]?.querySelector("input")?.value || "";
+}
+
+function valSelect(row, i){
+  return row.cells[i]?.querySelector("select")?.value || "";
+}
+
+function clean(v){ return (v ?? "").toString().trim().toUpperCase(); }
+
+document.getElementById("save-button").addEventListener("click", async function () {
+  const btn = this;
+  btn.disabled = true;
+
+  try {
+    const atelier     = clean(document.getElementById("atelier").value);
+    const responsable = clean(document.getElementById("responsable").value);
+    const poste       = clean(document.getElementById("poste").value);
+
+    if(!atelier || !responsable || !poste){
+      alert("Veuillez remplir tous les champs !");
+      btn.disabled = false;
+      return;
+    }
+
+    /* =========================
+       TABLEAU SANS OF
+    ========================= */
+    const tableSansOF = document.getElementById("table-sans-of");
+    if(tableSansOF){
+      const tbodySansOF = tableSansOF.querySelector("tbody");
+      for(const row of tbodySansOF.querySelectorAll("tr")){
+        const code = clean(valInput(row,0));
+        if(!code) continue;
+
+        const designation = clean(valInput(row,1));
+        const quantite    = valInput(row,2);
+        const unite       = valSelect(row,3);
+
+        if(!designation || !quantite || !unite){
+          alert("Une ligne du tableau Sans OF est incomplète");
+          btn.disabled = false;
+          return;
+        }
+
+        if(row.dataset.key){
+          // ✅ Modification uniquement pour lignes chargées
+          const snapshot = await db.ref("ArticlesSansOF/" + row.dataset.key).once("value");
+          const ancien = snapshot.val();
+          if(
+            ancien.codeArticle === code &&
+            ancien.designation === designation &&
+            ancien.quantite == quantite &&
+            ancien.unite === unite &&
+            ancien.atelier === atelier
+          ){
+            continue; // ✅ Tout est identique → ne rien faire
+          }
+
+          await db.ref("ArticlesSansOF/" + row.dataset.key).update({
+            quantite, unite, date: new Date().toLocaleString()
+          });
+        } else {
+          // ✅ Nouvelle ligne push seulement si aucune ligne identique dans Firebase
+          const snap = await db.ref("ArticlesSansOF").orderByChild("atelier").equalTo(atelier).once("value");
+          const existants = snap.val() || {};
+          const doublonFirebase = Object.values(existants).some(l =>
+            l.codeArticle === code &&
+            l.designation === designation &&
+            l.quantite == quantite &&
+            l.unite === unite &&
+            l.atelier === atelier
+          );
+          if(doublonFirebase) continue;
+
+          if(!row.dataset.tempId){
+            row.dataset.tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2,5);
+            const newRef = await db.ref("ArticlesSansOF").push();
+            row.dataset.key = newRef.key;
+            await newRef.set({
+              atelier, codeArticle: code, designation, quantite, unite,
+              responsable, date: new Date().toLocaleString()
+            });
+          }
+        }
+      }
+    }
+
+    /* =========================
+       TABLEAU INVENTAIRE
+    ========================= */
+    const table = document.getElementById("table-inventaire");
+    if(!table){
+      alert("Table inventaire introuvable !");
+      btn.disabled = false;
+      return;
+    }
+
+    for(let i=1;i<table.rows.length;i++){
+      const row = table.rows[i];
+      const ligne = {
+        lot: clean(valInput(row,0)),
+        emplacement: clean(valInput(row,1)),
+        codeVersion: clean(valInput(row,2)),
+        designation: clean(valInput(row,3)),
+        ofDest: clean(valInput(row,4)),
+        quantite: valInput(row,5),
+        unite: valSelect(row,6),
+        remarque: row.cells[7]?.textContent || ""
+      };
+
+      if(!ligne.lot || !ligne.emplacement || !ligne.codeVersion || !ligne.designation || !ligne.ofDest || !ligne.quantite){
+        alert(`Ligne ${i} inventaire incomplète`);
+        btn.disabled = false;
+        return;
+      }
+
+      if(row.dataset.ficheKey && row.dataset.ligneIndex !== undefined){
+        // ✅ Modification seulement si ligne chargée depuis Firebase
+        const snapshot = await fichesRef.child(row.dataset.ficheKey + "/inventaire/" + row.dataset.ligneIndex).once("value");
+        const ancien = snapshot.val();
+        if(
+          ancien.lot === ligne.lot &&
+          ancien.emplacement === ligne.emplacement &&
+          ancien.codeVersion === ligne.codeVersion &&
+          ancien.designation === ligne.designation &&
+          ancien.ofDest === ligne.ofDest &&
+          ancien.quantite == ligne.quantite &&
+          ancien.unite === ligne.unite
+        ){
+          continue; // ✅ Tout est identique → ne rien faire
+        }
+
+        await fichesRef.child(row.dataset.ficheKey + "/inventaire/" + row.dataset.ligneIndex).update(ligne);
+      } else {
+        // ✅ Nouvelle ligne push seulement si aucune ligne identique dans Firebase
+        const snapFiches = await fichesRef.once("value");
+        const fiches = snapFiches.val() || {};
+        const doublonFirebase = Object.values(fiches).some(f =>
+          f.inventaire?.some(l =>
+            l.lot === ligne.lot &&
+            l.emplacement === ligne.emplacement &&
+            l.codeVersion === ligne.codeVersion &&
+            l.designation === ligne.designation &&
+            l.ofDest === ligne.ofDest &&
+            l.quantite == ligne.quantite &&
+            l.unite === ligne.unite &&
+            clean(f.atelier) === atelier
+          )
+        );
+        if(doublonFirebase) continue;
+
+        if(!row.dataset.tempId){
+          row.dataset.tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2,5);
+          const newRef = await fichesRef.push();
+          row.dataset.key = newRef.key;
+          await newRef.set({
+            atelier, responsable, poste, date: new Date().toLocaleString(),
+            inventaire: [ligne]
+          });
+        }
+      }
+    }
+
+    alert("✅ Enregistrement terminé !");
+  } catch(err){
+    console.error(err);
+    alert("❌ Erreur : " + err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+
+
+
+
+
+// Vérifie la quantité et affiche la remarque
+function verifierQuantiteInput(input) {
+  const row = input.closest("tr");
+  const of = (row.cells[4].querySelector("input").value || "").trim().toUpperCase();
+  const remarqueSpan = row.querySelector(".warning-text");
+
+  // 🔹 Trouver la clé code|OF correspondant à l'OF
+  const key = Object.keys(codeDictSuivi).find(k => k.endsWith("|" + of));
+
+  if (!key) {
+    remarqueSpan.textContent = "";
+    remarqueSpan.classList.add("hidden");
+    updateRemarqueVisibility();
+    return;
+  }
+
+  const qteMax = Number(codeDictSuivi[key].qte);
+  const qteSaisie = Number(input.value);
+
+  if (isNaN(qteSaisie) || input.value === "") {
+    remarqueSpan.textContent = "";
+    remarqueSpan.classList.add("hidden");
+    updateRemarqueVisibility();
+    return;
+  }
+
+  if (qteSaisie > qteMax) {
+    const pourcentage = (((qteSaisie - qteMax) / qteMax)*100).toFixed(2);
+    remarqueSpan.textContent = `⚠️ Dépassement : ${pourcentage}%`;
+    remarqueSpan.classList.remove("hidden");
+  } else {
+    remarqueSpan.textContent = "";
+    remarqueSpan.classList.add("hidden");
+  }
+
+  updateRemarqueVisibility();
+}
+
+// Attache l'écouteur à toutes les lignes existantes
+function ajouterEcouteQuantiteALignesExistantes() {
+  document.querySelectorAll("#table-inventaire tbody tr").forEach(row => {
+    const inputQte = row.cells[5].querySelector("input");
+    if (inputQte) {
+      inputQte.removeEventListener("blur", inputQte._verifHandler);
+      inputQte._verifHandler = () => verifierQuantiteInput(inputQte);
+      inputQte.addEventListener("blur", inputQte._verifHandler);
+    }
+  });
+}
+
+// Attache l'écouteur à une nouvelle ligne
+function ajouterEcouteQuantite(nouvelleLigne) {
+  const inputQte = nouvelleLigne.cells[5].querySelector("input");
+  if (inputQte) {
+    inputQte._verifHandler = () => verifierQuantiteInput(inputQte);
+    inputQte.addEventListener("blur", inputQte._verifHandler);
+  }
+}
+
+// Appel pour lignes déjà présentes
+ajouterEcouteQuantiteALignesExistantes();
+
+// Exemple : lors de l'ajout d'une nouvelle ligne
+function ajouterLigne(bouton) {
+  const ligne = bouton.closest("tr");
+  const nouvelleLigne = ligne.cloneNode(true);
+
+  // Vider les valeurs
+  nouvelleLigne.querySelectorAll("input").forEach(input => {
+    input.value = "";
+    input.classList.remove("error");
+    input.disabled = false;
+  });
+  nouvelleLigne.querySelector("select").selectedIndex = 0;
+  nouvelleLigne.querySelector("select").disabled = false;
+  nouvelleLigne.querySelector(".warning-text").textContent = "";
+  nouvelleLigne.querySelector(".warning-text").classList.add("hidden");
+  nouvelleLigne.querySelector(".add-button").disabled = true;
+
+  // Ajouter la ligne après l'actuelle
+  ligne.parentNode.insertBefore(nouvelleLigne, ligne.nextSibling);
+
+  // Attacher l'écouteur de quantité
+  ajouterEcouteQuantite(nouvelleLigne);
+  mettreAJourLotEtEmplacement();
+
+  updateRemarqueVisibility();
+};
+  
+function Suivi(){ window.location.href="suivi.html"; }
+
+document.getElementById('terminer-button').addEventListener('click', function () {
+  const responsable = document.getElementById('responsable').value;
+  const atelier = document.getElementById('atelier').value;
+
+  if (!responsable || !atelier) {
+    alert("Veuillez renseigner l'atelier et le responsable !");
+    return;
+  }
+
+  const table = document.getElementById('table-inventaire');
+
+  // 1️⃣ OFs saisies (uniques)
+  const ofsSaisis = new Set();
+  for (let i = 1; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    const of = row.cells[4].querySelector('input')?.value?.trim().toUpperCase();
+    if (of) {
+      ofsSaisis.add(of);
+    }
+  }
+
+  // 2️⃣ OF DE SUIVI (PAR ATELIER)
+  const lignesSuivi = Object.keys(codeDictSuivi)
+    .filter(key => codeDictSuivi[key].atelier === atelier);
+
+  // 3️⃣ COMPARAISON PAR OF
+  const manquants = lignesSuivi.filter(key => {
+    const of = key.split("|")[1]; // extraire uniquement l'OF
+    return !ofsSaisis.has(of);    // si OF non saisi
+  });
+
+  const nbManquants = manquants.length;
+
+  // 4️⃣ AFFICHAGE
+  const bloc = document.getElementById('of-missing-block');
+  const compteur = document.getElementById('of-missing-count');
+  const btnValider = document.getElementById('valider-of-missing');
+
+  if (nbManquants === 0) {
+    bloc.style.display = "none";
+    alert("✅ Tous les OF sont saisis !");
+    return;
+  }
+
+  compteur.textContent = `OF manquants : ${nbManquants}`;
+  bloc.style.display = "block";
+
+  // 🔹 FONCTION UNIQUE POUR VALIDER
+  btnValider.onclick = function () {
+    if (manquants.length === 0) {
+      alert("✅ Tous les OF sont déjà saisis !");
+      bloc.style.display = "none";
+      return;
+    }
+
+    const ofManquantsData = manquants.map(key => {
+      const [code, of] = key.split("|");
+      return {
+        codeArticle: code,
+        of: of,
+        atelier: atelier,
+        validePar: responsable,
+        dateValidation: new Date().toLocaleString()
+      };
+    });
+
+    const ofManquantsRef = db.ref('OFManquants');
+
+    // 🔹 Supprimer uniquement les entrées de ce responsable
+    ofManquantsRef.get().then(snapshot => {
+      const allData = snapshot.val() || {};
+      Object.keys(allData).forEach(key => {
+        if (allData[key].validePar === responsable) {
+          ofManquantsRef.child(key).remove();
+        }
+      });
+
+      // 🔹 Ajouter les nouvelles données pour ce responsable
+      ofManquantsData.forEach(item => {
+        const newKey = ofManquantsRef.push().key;
+        ofManquantsRef.child(newKey).set(item);
+      });
+
+      // 🔹 Mise à jour visuelle du tableau
+      for (let i = 1; i < table.rows.length; i++) {
+        const remarqueSpan = table.rows[i].cells[7]?.querySelector('.warning-text');
+        if (remarqueSpan && remarqueSpan.textContent.trim() === "") {
+          remarqueSpan.style.color = "green";
+          remarqueSpan.classList.remove("hidden");
+        }
+      }
+
+      bloc.style.display = "none";
+      alert(`✅ Les OF manquants de ${responsable} ont été réinitialisés et enregistrés !`);
+    });
+  };
+});
+
+function initialiserLigne(row) {
+  const inputCode = row.cells[2].querySelector("input");
+  const inputOF   = row.cells[4].querySelector("input");
+  const inputQte  = row.cells[5].querySelector("input");
+  const addBtn    = row.querySelector(".add-button");
+
+  if(inputCode) {
+    inputCode.addEventListener("blur", () => handleCodeKey(null, inputCode));
+  }
+  if(inputOF) {
+    inputOF.addEventListener("blur", () => handleOFKey(null, inputOF));
+  }
+  if(inputQte) {
+    inputQte._verifHandler = () => verifierQuantiteInput(inputQte);
+    inputQte.addEventListener("blur", inputQte._verifHandler);
+  }
+  if(addBtn) {
+    addBtn.disabled = inputCode.value === "" || inputCode.classList.contains("error");
+  }
+}
+
+document.getElementById('charger-button').addEventListener('click', async function () {
+  const responsableInput = clean(document.getElementById('responsable').value);
+  const atelierInput     = clean(document.getElementById('atelier').value);
+
+  if (!responsableInput || !atelierInput){
+    alert("Veuillez sélectionner l'atelier et le responsable.");
+    return;
+  }
+
+  if (!confirm(`Charger les saisies précédentes de ${responsableInput} ?`)) return;
+
+  try{
+    // =========================
+    // TABLEAU INVENTAIRE
+    // =========================
+    const snapshot = await fichesRef.once('value');
+    const tbody = document.querySelector('#table-inventaire tbody');
+    tbody.innerHTML = "";
+
+    Object.entries(snapshot.val() || {}).forEach(([ficheKey, fiche]) => {
+      if(clean(fiche.responsable) !== responsableInput || clean(fiche.atelier) !== atelierInput) return;
+      (fiche.inventaire || []).forEach((ligne, idx) => {
+        const tr = document.createElement('tr');
+        tr.dataset.ficheKey = ficheKey;
+        tr.dataset.ligneIndex = idx;
+        tr.innerHTML = `
+          <td><input type="text" value="${ligne.lot || ''}"></td>
+          <td><input type="text" value="${ligne.emplacement || ''}"></td>
+          <td><input type="text" value="${ligne.codeVersion || ''}"></td>
+          <td><input type="text" value="${ligne.designation || ''}" readonly></td>
+          <td><input type="text" value="${ligne.ofDest || ''}"></td>
+          <td><input type="text" value="${ligne.quantite || ''}"></td>
+          <td>
+            <select>
+              <option value=""></option>
+              <option value="UN" ${ligne.unite === "UN" ? "selected" : ""}>UN</option>
+              <option value="KG" ${ligne.unite === "KG" ? "selected" : ""}>KG</option>
+              <option value="M"  ${ligne.unite === "M" ? "selected" : ""}>M</option>
+              <option value="L"  ${ligne.unite === "L" ? "selected" : ""}>L</option>
+              <option value="BA" ${ligne.unite === "BA" ? "selected" : ""}>BA</option>
+            </select>
+          </td>
+          <td class="remarque-cell ${ligne.remarque ? '' : 'hidden'}">
+            <span class="warning-text">${ligne.remarque || ''}</span>
+          </td>
+          <td class="no-print">
+            <button class="add-button" onclick="ajouterLigne(this)">+</button>
+            <button class="delete-button" onclick="supprimerContenuLigne(this)">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+        ajouterEcouteQuantite(tr);
+      });
+    });
+
+    // =========================
+    // TABLEAU ARTICLES SANS OF
+    // =========================
+    const snapshotSansOF = await db.ref('ArticlesSansOF').once('value');
+    const tbodySansOF = document.querySelector('#table-sans-of tbody');
+    tbodySansOF.innerHTML = "";
+
+    Object.entries(snapshotSansOF.val() || {}).forEach(([key, article]) => {
+      if(clean(article.responsable) !== responsableInput || clean(article.atelier) !== atelierInput) return;
+
+      const tr = document.createElement('tr');
+      tr.dataset.key = key;
+      tr.innerHTML = `
+        <td><input type="text" value="${article.codeArticle || ''}"></td>
+        <td><input type="text" value="${article.designation || ''}" readonly></td>
+        <td><input type="text" value="${article.quantite || ''}"></td>
+        <td>
+          <select>
+            <option value=""></option>
+            <option value="UN" ${article.unite === "UN" ? "selected" : ""}>UN</option>
+            <option value="KG" ${article.unite === "KG" ? "selected" : ""}>KG</option>
+            <option value="M"  ${article.unite === "M" ? "selected" : ""}>M</option>
+            <option value="L"  ${article.unite === "L" ? "selected" : ""}>L</option>
+            <option value="BA" ${article.unite === "BA" ? "selected" : ""}>BA</option>
+          </select>
+        </td>
+      `;
+      tbodySansOF.appendChild(tr);
+    });
+
+    updateRemarqueVisibility();
+    alert("✅ Saisies chargées avec succès !");
+  } catch(err){
+    console.error(err);
+    alert("❌ Erreur lors du chargement : " + err.message);
+  }
+});
+
+function ajouterLigneSansOF(bouton) { 
+  const ligne = bouton.closest("tr");
+  const nouvelleLigne = ligne.cloneNode(true);
+
+  // Vider les valeurs
+  nouvelleLigne.querySelectorAll("input").forEach(input => {
+    input.value = "";
+    input.classList.remove("error");
+  });
+  nouvelleLigne.querySelectorAll("select").forEach(sel => sel.selectedIndex = 0);
+
+  // Ajouter la ligne après l'actuelle
+  ligne.parentNode.insertBefore(nouvelleLigne, ligne.nextSibling);
+
+  // ⚡ Boutons
+  const addBtn = nouvelleLigne.querySelector(".add-button");
+  addBtn.onclick = () => ajouterLigneSansOF(addBtn);
+
+  const delBtn = nouvelleLigne.querySelector(".delete-button");
+  delBtn.onclick = () => supprimerContenuLigne(delBtn);
+
+  // ⚡ Désignation automatique
+  const codeInput = nouvelleLigne.querySelector(".code-article");
+  const designationInput = nouvelleLigne.querySelector(".designation");
+
+  codeInput.addEventListener("blur", () => {
+    const code = codeInput.value.trim().toUpperCase();
+    codeInput.value = code;
+    if(codeDict[code]){
+      designationInput.value = codeDict[code].designation || codeDict[code];
+    } else {
+      designationInput.value = "Code inconnu";
+    }
+  });
+}
+
+// 🔹 Supprimer une ligne
+function supprimerContenuLigne(bouton){
+  if(!confirm("Supprimer cette ligne ?")) return;
+  const ligne = bouton.closest("tr");
+  if(ligne) ligne.remove();
+}
+
+// 🔹 Afficher le tableau au clic
+const btnInsererSansOF = document.getElementById('btn-inserer-sans-of');
+const blocSansOF = document.getElementById('bloc-sans-of');
+
+btnInsererSansOF.addEventListener('click', () => {
+  blocSansOF.style.display = 'block';
+  blocSansOF.classList.remove('hidden');
+
+  const tbody = blocSansOF.querySelector("tbody");
+
+  // ⚡ Créer la première ligne si vide
+  if(tbody && tbody.rows.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" class="code-article"></td>
+      <td><input type="text" class="designation" readonly></td>
+      <td><input type="number"></td>
+      <td>
+        <select>
+          <option value="" selected disabled hidden></option>
+          <option value="UN">UN</option>
+          <option value="KG">KG</option>
+          <option value="M">M</option>
+          <option value="L">L</option>
+          <option value="BA">BA</option>
+        </select>
+      </td>
+      <td>
+        <button class="add-button">+</button>
+        <button class="delete-button">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // ⚡ Attacher désignation automatique et boutons pour toutes les lignes existantes
+  tbody.querySelectorAll("tr").forEach(row => {
+    const codeInput = row.querySelector(".code-article");
+    const designationInput = row.querySelector(".designation");
+    const addBtn = row.querySelector(".add-button");
+    const delBtn = row.querySelector(".delete-button");
+
+    if(codeInput && designationInput){
+      // éviter de dupliquer les listeners
+      codeInput.replaceWith(codeInput.cloneNode(true));
+      const newCodeInput = row.querySelector(".code-article");
+      newCodeInput.addEventListener("blur", () => {
+        const code = newCodeInput.value.trim().toUpperCase();
+        newCodeInput.value = code;
+        if(codeDict[code]){
+          designationInput.value = codeDict[code].designation || codeDict[code];
+        } else {
+          designationInput.value = "Code inconnu";
+        }
+      });
+    }
+
+    if(addBtn) addBtn.onclick = () => ajouterLigneSansOF(addBtn);
+    if(delBtn) delBtn.onclick = () => supprimerContenuLigne(delBtn);
+  });
+});
+
+// ===== Gestion automatique Lot et Emplacement =====
+function mettreAJourLotEtEmplacement() {
+  const table = document.getElementById('table-inventaire');
+  if (table.rows.length <= 1) return;
+
+  let lastEmplacement = table.rows[1].cells[1].querySelector('input')?.value.trim() || "";
+  let currentLot = 1;
+
+  for (let i = 1; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    const lotInput = row.cells[0].querySelector('input');
+    const emplacementInput = row.cells[1].querySelector('input');
+
+    if (!lotInput || !emplacementInput) continue;
+
+    // Première ligne : garder emplacement saisi
+    if (i === 1) {
+      lastEmplacement = emplacementInput.value.trim();
+      currentLot = 1;
+    } else {
+      // Si l'emplacement vide -> copier celui de la ligne précédente
+      if (!emplacementInput.value.trim()) {
+        emplacementInput.value = lastEmplacement;
+      }
+
+      // Si emplacement modifié -> réinitialiser lot
+      if (emplacementInput.value.trim() !== lastEmplacement) {
+        lastEmplacement = emplacementInput.value.trim();
+        currentLot = 1;
+      }
+    }
+
+    // Mettre à jour lot
+    lotInput.value = String(currentLot).padStart(2, '0');
+
+    currentLot++;
+
+    // Écoute sur l'emplacement pour mise à jour dynamique
+    emplacementInput.oninput = () => mettreAJourLotEtEmplacement();
+  }
+}
+
+function bloquerPage(message) {
+  alert(message);
+
+  document.body.innerHTML = `
+    <div style="
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      font-family:Arial;
+      background:#f8d7da;
+      color:#721c24;
+      text-align:center;
+    ">
+      <div>
+        <h1>⛔ ACCÈS BLOQUÉ</h1>
+        <p>${message}</p>
+        <button onclick="window.location.href='login.html'"
+          style="padding:10px 20px;font-size:16px;">
+          Retour login
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+
+</script>
+
+</body>
+</html>
