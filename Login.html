@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Connexion - Inventaire des encours SOPAL</title>
+<style>
+  body {
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    background: url('images.jpg') no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  body::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: -1;
+  }
+  .login-box {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 350px;
+    text-align: center;
+  }
+  .login-box img {
+    height: 60px;
+    margin-bottom: 20px;
+  }
+  h2 { color: #0a3d62; margin-bottom: 30px; }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+  button {
+    width: 100%;
+    padding: 14px;
+    background: #0072ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+  button:hover { background: #005edc; }
+  .error { color: red; margin-top: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <img src="image.png" alt="Groupe SOPAL">
+  <h2>Connexion Inventaire Des En Cours</h2>
+  
+  <input type="text" id="username" placeholder="Nom du responsable" autocomplete="off">
+  <input type="password" id="password" placeholder="Mot de passe">
+  
+  <div id="error-msg" class="error"></div>
+  
+  <button onclick="login()">Se connecter</button>
+</div>
+
+<script>
+// === Base utilisateurs (à compléter avec tous tes responsables) ===
+const utilisateurs = {
+  "Achraf AKROUT":       { password: "achraf123", ateliers: ["03", "TRGR"] },
+  "Wassim JARRAYA":      { password: "wassim123", ateliers: ["05"] },
+  "Ali CHAARI":          { password: "ali123",    ateliers: ["06"] },
+  "Abderrazek REGAYEG":  { password: "abder123",  ateliers: ["07"] },
+  "Amine KAMMOUN":       { password: "amine123",  ateliers: ["08"] },
+  "Mohamed FRIKHA":      { password: "mohamed123",ateliers: ["09"] },
+  "Ahmed TURKI":         { password: "ahmed123",  ateliers: ["11"] },
+  "Abdellah BOUAZIZ":    { password: "abdellah123", ateliers: ["13"] },
+  "Abdessalem Ben Elhadj":{ password: "abdessalem123", ateliers: ["16"] },
+  "Seifeddine KRIAA":    { password: "seif123",   ateliers: ["17"] },
+  "Tarek LOUATI":        { password: "tarek123",  ateliers: ["19"] },
+  "Majed FESSI":         { password: "majed123",  ateliers: ["21","22","23","24","SGEST","SGINJ","SGUSI","TPRD1","TPRD2"] },
+  "Nihel HAMMAMI":       { password: "nihel123",  ateliers: ["APASS","APINJ"] },
+  "Omar GUIDARA":        { password: "omar123",   ateliers: ["SAASS","SACIN","SAPOL","SASOU","SATUB","SAUSI"] },
+  "Amine AYEDI":         { password: "amineayedi123", ateliers: ["SGASS"] },
+  "Mohamed MAJDOUB":     { password: "majdoub123", ateliers: ["WCEM","WCEMC","WCOC","WCUIS","WEM01","WNASS","WNDEC","WNEBV","WNEM1","WNEST","WNLAM"] }
+  // Ajoute les autres si besoin
+};
+
+function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  const errorMsg = document.getElementById("error-msg");
+
+  if (!username || !password) {
+    errorMsg.textContent = "Veuillez remplir tous les champs";
+    return;
+  }
+
+  const user = utilisateurs[username];
+
+  if (user && user.password === password) {
+    // Sauvegarde en localStorage (session sécurisée)
+    localStorage.setItem("userConnecte", JSON.stringify({
+      nom: username,
+      ateliers: user.ateliers
+    }));
+    // Redirection vers la fiche
+    window.location.href = "inventaire.html";
+  } else {
+    errorMsg.textContent = "Nom ou mot de passe incorrect";
+  }
+}
+
+// Empêcher Entrée de valider trop tôt
+document.getElementById("password").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") login();
+});
+</script>
+
+</body>
+</html>
