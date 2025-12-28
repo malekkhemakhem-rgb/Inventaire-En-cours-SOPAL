@@ -370,7 +370,7 @@ const fichesRef = db.ref('fiches');
 
 if (!session) {
   alert("Accès interdit. Veuillez vous connecter.");
-  window.location.href = "login.html";
+  window.location.href = "index.html";
 }
 
 // Données utilisateur
@@ -1190,7 +1190,7 @@ function bloquerPage(message) {
       <div>
         <h1>⛔ ACCÈS BLOQUÉ</h1>
         <p>${message}</p>
-        <button onclick="window.location.href='login.html'"
+        <button onclick="window.location.href='index.html'"
           style="padding:10px 20px;font-size:16px;">
           Retour login
         </button>
