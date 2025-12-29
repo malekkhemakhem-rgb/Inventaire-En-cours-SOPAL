@@ -614,7 +614,7 @@ document.getElementById("save-button").addEventListener("click", async function 
     const responsable = clean(document.getElementById("responsable").value);
     const poste       = clean(document.getElementById("poste").value);
 
-    if(!atelier || !responsable || !poste){
+    if(!atelier || !responsable){
       alert("Veuillez remplir tous les champs !");
       btn.disabled = false;
       return;
