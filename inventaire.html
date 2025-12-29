@@ -1221,7 +1221,7 @@ function mettreAJourLotEtEmplacement() {
   if (table.rows.length <= 1) return;
 
   let lastEmplacement = table.rows[1].cells[1].querySelector('input')?.value.trim() || "";
-  let currentLot = 1;
+  let currentLot = null; // null = pas d’auto incrément
 
   for (let i = 1; i < table.rows.length; i++) {
     const row = table.rows[i];
@@ -1230,30 +1230,43 @@ function mettreAJourLotEtEmplacement() {
 
     if (!lotInput || !emplacementInput) continue;
 
-    // Première ligne : garder emplacement saisi
+    // ----- Emplacement -----
     if (i === 1) {
       lastEmplacement = emplacementInput.value.trim();
-      currentLot = 1;
     } else {
-      // Si l'emplacement vide -> copier celui de la ligne précédente
       if (!emplacementInput.value.trim()) {
         emplacementInput.value = lastEmplacement;
       }
 
-      // Si emplacement modifié -> réinitialiser lot
       if (emplacementInput.value.trim() !== lastEmplacement) {
         lastEmplacement = emplacementInput.value.trim();
-        currentLot = 1;
+        currentLot = null; // reset lot auto
       }
     }
 
-    // Mettre à jour lot
-    lotInput.value = String(currentLot).padStart(2, '0');
+    // ----- LOT -----
+    const lotSaisi = lotInput.value.trim();
 
-    currentLot++;
+    // Si l'utilisateur a saisi un lot
+    if (lotSaisi !== "") {
+      // S'il est numérique → on continue l’auto-incrément à partir de lui
+      if (!isNaN(lotSaisi)) {
+        currentLot = parseInt(lotSaisi, 10) + 1;
+      } else {
+        // Non numérique → on bloque l’auto incrément
+        currentLot = null;
+      }
+    } else {
+      // Lot vide → auto seulement si currentLot est valide
+      if (currentLot !== null) {
+        lotInput.value = String(currentLot).padStart(2, '0');
+        currentLot++;
+      }
+    }
 
-    // Écoute sur l'emplacement pour mise à jour dynamique
+    // Mise à jour dynamique
     emplacementInput.oninput = () => mettreAJourLotEtEmplacement();
+    lotInput.oninput = () => mettreAJourLotEtEmplacement();
   }
 }
 
