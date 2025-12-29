@@ -115,10 +115,17 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 }
 
 @media print {
- /* Cacher uniquement les boutons et actions */
+
+  /* Cacher uniquement les boutons et actions */
   .no-print,
   button,
   .print-button {
+    display: none !important;
+  }
+
+  /* Masquer la colonne Remarque du tableau inventaire */
+  #table-inventaire td.remarque-cell,
+  #table-inventaire th.remarque-header {
     display: none !important;
   }
 
@@ -128,58 +135,43 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
     visibility: visible !important;
   }
 
-  /* Forcer l'affichage du tableau sans OF */
+  /* Forcer l'affichage des tableaux */
+  #table-inventaire,
   #table-sans-of {
     display: table !important;
+    page-break-inside: auto;
   }
 
+  #table-inventaire thead,
   #table-sans-of thead {
     display: table-header-group !important;
   }
 
+  #table-inventaire tbody,
   #table-sans-of tbody {
     display: table-row-group !important;
   }
 
-  /* S'assurer que le tableau principal s'imprime aussi */
-  #table-inventaire {
-    display: table !important;
-  }
-
-  /* Supprimer le fond flou à l'impression */
-  body::before {
-    display: none !important;
-  }
-
-  body {
-    background: white !important;
-  }
-   .no-print, button, .print-button { display: none !important; }
+  /* Supprimer le fond flou */
   body::before { display: none !important; }
   body { background: white !important; }
 
-  /* Définir en-tête et pied pour toutes les pages */
-  header { 
-    display: block;
-    position: running(pageHeader);
-  }
+  /* Header / Footer */
+  header { display: block; position: running(pageHeader); }
   footer { 
     display: block;
     position: running(pageFooter);
+    content: normal !important; /* empêche l'affichage de l'URL */
   }
 
-  /* Styles du tableau pour impression */
-  #table-inventaire, #table-sans-of { display: table !important; page-break-inside: auto; }
-  #table-inventaire thead, #table-sans-of thead { display: table-header-group !important; }
-  #table-inventaire tbody, #table-sans-of tbody { display: table-row-group !important; }
-
-  /* Répéter header et footer */
   @page {
     margin: 20mm 15mm 20mm 15mm;
     @top-center { content: element(pageHeader); }
     @bottom-center { content: element(pageFooter); }
   }
 }
+
+
 </style>
 </head>
 <body>
@@ -204,6 +196,7 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 &nbsp;&nbsp;<strong>Poste de travail :</strong>
 <input type="text" id="poste" style="width:150px;" required>
 </div>
+
 <style>
   /* Tableau Articles sans OF */
   #table-sans-of th, #table-sans-of td {
@@ -215,19 +208,27 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 
   /* Largeurs des colonnes */
   #table-sans-of th:nth-child(1),
-  #table-sans-of td:nth-child(1) { width: 20%; } /* Code Article */
+  #table-sans-of td:nth-child(1) { width: 5%; } /* LOT */
   
   #table-sans-of th:nth-child(2),
-  #table-sans-of td:nth-child(2) { width: 40%; } /* Désignation */
-  
+  #table-sans-of td:nth-child(2) { width: 15; } /* Désignation */
   #table-sans-of th:nth-child(3),
-  #table-sans-of td:nth-child(3) { width: 15%; } /* Quantité */
-  
-  #table-sans-of th:nth-child(4),
-  #table-sans-of td:nth-child(4) { width: 15%; } /* Unité */
-  
+  #table-sans-of td:nth-child(3) { width: 20%; } /* LOT */
+
+   #table-sans-of th:nth-child(4),
+  #table-sans-of td:nth-child(4) { width: 35%; } /* LOT */
+
   #table-sans-of th:nth-child(5),
-  #table-sans-of td:nth-child(5) { width: 10%; } /* Boutons */
+  #table-sans-of td:nth-child(5) { width: 10%; } /* Quantité */
+  
+  #table-sans-of th:nth-child(6),
+  #table-sans-of td:nth-child(6) { width: 8%; } /* Unité */
+
+  #table-sans-of th:nth-child(7),
+  #table-sans-of td:nth-child(7) { width: 15%; } /* Boutons */
+  
+  #table-sans-of th:nth-child(8),
+  #table-sans-of td:nth-child(8) { width: 10%; } /* Boutons */
 </style>
 
 <script>
@@ -304,16 +305,20 @@ const fichesRef = db.ref('fiches');
   <h4>⚠️ Composants sans OF 🛠️</h4>
   <table id="table-sans-of">
     <thead>
-      <tr>
+      <tr><th>Lot</th>
+        <th>Emplacement/Inventaire</th>
         <th>Code Article</th>
         <th>Désignation</th>
         <th>Quantité</th>
         <th>Unité</th>
+        <th>Commentaire</th>
         <th>➕ / 🗑️</th>
       </tr>
     </thead>
     <tbody>
       <tr>
+        <td><input type="text" class="Lot"></td>
+        <td><input type="text" class="Emplacement/Inventaire"></td>
         <td><input type="text" class="code-article"></td>
         <td><input type="text" class="designation" readonly></td>
         <td><input type="number"></td>
@@ -327,6 +332,7 @@ const fichesRef = db.ref('fiches');
             <option value="BA">BA</option>
           </select>
         </td>
+        <td><input type="text" class="Commentaire"></td>
         <td>
           <button class="add-button">+</button>
           <button class="delete-button">🗑️</button>
@@ -363,6 +369,49 @@ const fichesRef = db.ref('fiches');
 
 
 <script>
+  const responsablesParAtelier = {
+  "03": "Achraf AKROUT",
+  "TRGR": "Achraf AKROUT",
+  "05": "Wassim JARRAYA",
+  "06": "Ali CHAARI",
+  "07": "Abderrazek REGAYEG",
+  "08": "Amine KAMMOUN",
+  "09": "Mohamed FRIKHA",
+  "11": "Ahmed TURKI",
+  "13": "Abdellah BOUAZIZ",
+  "16": "Abdessalem Ben Elhadj",
+  "17": "Seifeddine KRIAA",
+  "19": "Tarek LOUATI",
+  "21": "Majed FESSI",
+  "22": "Majed FESSI",
+  "23": "Majed FESSI",
+  "24": "Majed FESSI",
+  "SGEST": "Majed FESSI",
+  "SGINJ": "Majed FESSI",
+  "SGUSI": "Majed FESSI",
+  "TPRD1": "Majed FESSI",
+  "TPRD2": "Majed FESSI",
+  "APASS": "Nihel HAMMAMI",
+  "APINJ": "Nihel HAMMAMI",
+  "SAASS": "Omar GUIDARA",
+  "SACIN": "Omar GUIDARA",
+  "SAPOL": "Omar GUIDARA",
+  "SASOU": "Omar GUIDARA",
+  "SATUB": "Omar GUIDARA",
+  "SAUSI": "Omar GUIDARA",
+  "SGASS": "Amine AYEDI",
+  "WCEM":"Mohamed MAJDOUB",
+  "WCEMC":"Mohamed MAJDOUB",
+  "WCOC":"Mohamed MAJDOUB",
+  "WCUIS":"Mohamed MAJDOUB",
+  "WEM01":"Mohamed MAJDOUB",
+  "WNASS":"Mohamed MAJDOUB",
+  "WNDEC":"Mohamed MAJDOUB",
+  "WNEBV":"Mohamed MAJDOUB",
+  "WNEM1":"Mohamed MAJDOUB",
+  "WNEST":"Mohamed MAJDOUB",
+  "WNLAM":"Mohamed MAJDOUB"
+};
   // ===============================
 // 🔐 CONTROLE SESSION UTILISATEUR
 // ===============================
@@ -384,23 +433,48 @@ const responsableInput = document.getElementById("responsable");
 const listeAteliers = document.getElementById("listeAteliers");
 
 // Pré-remplir responsable
-responsableInput.value = USER_NOM;
-responsableInput.readOnly = true;
+if(USER_NOM === "Admin") {
+  // Injecter tous les ateliers
+  listeAteliers.innerHTML = "";
+  Object.keys(responsablesParAtelier).forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    listeAteliers.appendChild(opt);
+  });
 
-// Injecter uniquement les ateliers autorisés
-listeAteliers.innerHTML = "";
-USER_ATELIERS.forEach(a => {
-  const opt = document.createElement("option");
-  opt.value = a;
-  listeAteliers.appendChild(opt);
-});
+  // Quand l'admin choisit un atelier, afficher le responsable automatiquement
+  atelierInput.addEventListener("input", () => {
+    const atelierChoisi = atelierInput.value;
+    if(responsablesParAtelier[atelierChoisi]) {
+      responsableInput.value = responsablesParAtelier[atelierChoisi];
+    } else {
+      responsableInput.value = "";
+    }
+  });
+} else {
+  // Utilisateur normal
+  listeAteliers.innerHTML = "";
+  USER_ATELIERS.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    listeAteliers.appendChild(opt);
+  });
+  
+  // Pré-remplir responsable pour utilisateurs normaux
+  responsableInput.value = USER_NOM;
+}
+
 
 // Bloquer saisie libre
-atelierInput.addEventListener("input", () => {
-  if (!USER_ATELIERS.includes(atelierInput.value)) {
-    bloquerPage(`⛔ Accès interdit à l'atelier ${atelierInput.value}`);
+// Blocage pour utilisateurs non-admin
+atelierInput.addEventListener("blur", () => {
+  const atelierSaisi = atelierInput.value.trim();
+  if(USER_NOM !== "Admin" && !USER_ATELIERS.includes(atelierSaisi)) {
+    bloquerPage(`⛔ Accès interdit à l'atelier ${atelierSaisi}`);
   }
 });
+
+
 
 
 // ===== Fonctions principales =====
@@ -574,64 +648,93 @@ document.getElementById("save-button").addEventListener("click", async function 
        TABLEAU SANS OF
     ========================= */
     const tableSansOF = document.getElementById("table-sans-of");
-    if(tableSansOF){
-      const tbodySansOF = tableSansOF.querySelector("tbody");
-      for(const row of tbodySansOF.querySelectorAll("tr")){
-        const code = clean(valInput(row,0));
-        if(!code) continue;
+if(tableSansOF){
+  const tbodySansOF = tableSansOF.querySelector("tbody");
 
-        const designation = clean(valInput(row,1));
-        const quantite    = valInput(row,2);
-        const unite       = valSelect(row,3);
+  for(const row of tbodySansOF.querySelectorAll("tr")){
+    const code        = clean(valInput(row,2));
+    if(!code) continue;
 
-        if(!designation || !quantite || !unite){
-          alert("Une ligne du tableau Sans OF est incomplète");
-          btn.disabled = false;
-          return;
-        }
+    const lot         = clean(valInput(row,0));                 // optionnel
+    const emplacement = clean(valInput(row,1));                 // optionnel
+    const designation = clean(valInput(row,3));                 // designation
+    const quantite    = valInput(row,4);                        // quantité
+    const unite       = valSelect(row,5);                       // unité
+    const commentaire = clean(valInput(row,6));                 // input texte, pas select
 
-        if(row.dataset.key){
-          // ✅ Modification uniquement pour lignes chargées
-          const snapshot = await db.ref("ArticlesSansOF/" + row.dataset.key).once("value");
-          const ancien = snapshot.val();
-          if(
-            ancien.codeArticle === code &&
-            ancien.designation === designation &&
-            ancien.quantite == quantite &&
-            ancien.unite === unite &&
-            ancien.atelier === atelier
-          ){
-            continue; // ✅ Tout est identique → ne rien faire
-          }
+    if(!designation || !quantite || !unite){
+      alert("Une ligne du tableau Sans OF est incomplète");
+      btn.disabled = false;
+      return;
+    }
 
-          await db.ref("ArticlesSansOF/" + row.dataset.key).update({
-            quantite, unite, date: new Date().toLocaleString()
-          });
-        } else {
-          // ✅ Nouvelle ligne push seulement si aucune ligne identique dans Firebase
-          const snap = await db.ref("ArticlesSansOF").orderByChild("atelier").equalTo(atelier).once("value");
-          const existants = snap.val() || {};
-          const doublonFirebase = Object.values(existants).some(l =>
-            l.codeArticle === code &&
-            l.designation === designation &&
-            l.quantite == quantite &&
-            l.unite === unite &&
-            l.atelier === atelier
-          );
-          if(doublonFirebase) continue;
+    if(row.dataset.key){
+      // Modification uniquement pour lignes déjà chargées
+      const snapshot = await db.ref("ArticlesSansOF/" + row.dataset.key).once("value");
+      const ancien = snapshot.val();
 
-          if(!row.dataset.tempId){
-            row.dataset.tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2,5);
-            const newRef = await db.ref("ArticlesSansOF").push();
-            row.dataset.key = newRef.key;
-            await newRef.set({
-              atelier, codeArticle: code, designation, quantite, unite,
-              responsable, date: new Date().toLocaleString()
-            });
-          }
-        }
+      if(
+        ancien.codeArticle === code &&
+        ancien.designation === designation &&
+        ancien.quantite == quantite &&
+        ancien.unite === unite &&
+        ancien.lot === lot &&
+        ancien.emplacement === emplacement &&
+        ancien.commentaire === commentaire &&
+        ancien.atelier === atelier
+      ){
+        continue; // Tout identique → ne rien faire
+      }
+
+      await db.ref("ArticlesSansOF/" + row.dataset.key).update({
+        quantite,
+        unite,
+        lot,
+        emplacement,
+        commentaire,
+        date: new Date().toLocaleString()
+      });
+
+    } else {
+      // Nouvelle ligne push seulement si aucune ligne identique dans Firebase
+      const snap = await db.ref("ArticlesSansOF").orderByChild("atelier").equalTo(atelier).once("value");
+      const existants = snap.val() || {};
+
+      const doublonFirebase = Object.values(existants).some(l =>
+        l.lot === lot &&
+        l.emplacement === emplacement &&
+        l.codeArticle === code &&
+        l.designation === designation &&
+        l.quantite == quantite &&
+        l.unite === unite &&
+        l.commentaire === commentaire &&
+        l.atelier === atelier
+      );
+
+      if(doublonFirebase) continue;
+
+      if(!row.dataset.tempId){
+        row.dataset.tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).substr(2,5);
+        const newRef = await db.ref("ArticlesSansOF").push();
+        row.dataset.key = newRef.key;
+
+        await newRef.set({
+          atelier,
+          codeArticle: code,
+          designation,
+          quantite,
+          unite,
+          lot,
+          emplacement,
+          commentaire,
+          responsable,
+          date: new Date().toLocaleString()
+        });
       }
     }
+  }
+}
+
 
     /* =========================
        TABLEAU INVENTAIRE
@@ -1001,6 +1104,8 @@ document.getElementById('charger-button').addEventListener('click', async functi
       const tr = document.createElement('tr');
       tr.dataset.key = key;
       tr.innerHTML = `
+        <td><input type="text" value="${article.lot || ''}"></td>
+        <td><input type="text" value="${article.emplacement || ''}"></td>
         <td><input type="text" value="${article.codeArticle || ''}"></td>
         <td><input type="text" value="${article.designation || ''}" readonly></td>
         <td><input type="text" value="${article.quantite || ''}"></td>
@@ -1013,6 +1118,7 @@ document.getElementById('charger-button').addEventListener('click', async functi
             <option value="L"  ${article.unite === "L" ? "selected" : ""}>L</option>
             <option value="BA" ${article.unite === "BA" ? "selected" : ""}>BA</option>
           </select>
+          <td><input type="text" value="${article.commentaire || ''}"></td>
         </td>
       `;
       tbodySansOF.appendChild(tr);
@@ -1198,6 +1304,7 @@ function bloquerPage(message) {
     </div>
   `;
 }
+
 
 
 </script>
