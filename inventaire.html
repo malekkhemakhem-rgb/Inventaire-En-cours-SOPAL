@@ -370,8 +370,7 @@ const fichesRef = db.ref('fiches');
 
 <script>
   const responsablesParAtelier = {
-  "03": "Achraf AKROUT",
-  "TRGR": "Achraf AKROUT",
+  "Estampage": "Achraf AKROUT",
   "05": "Wassim JARRAYA",
   "06": "Ali CHAARI",
   "07": "Abderrazek REGAYEG",
@@ -382,35 +381,11 @@ const fichesRef = db.ref('fiches');
   "16": "Abdessalem Ben Elhadj",
   "17": "Seifeddine KRIAA",
   "19": "Tarek LOUATI",
-  "21": "Majed FESSI",
-  "22": "Majed FESSI",
-  "23": "Majed FESSI",
-  "24": "Majed FESSI",
-  "SGEST": "Majed FESSI",
-  "SGINJ": "Majed FESSI",
-  "SGUSI": "Majed FESSI",
-  "TPRD1": "Majed FESSI",
-  "TPRD2": "Majed FESSI",
-  "APASS": "Nihel HAMMAMI",
-  "APINJ": "Nihel HAMMAMI",
-  "SAASS": "Omar GUIDARA",
-  "SACIN": "Omar GUIDARA",
-  "SAPOL": "Omar GUIDARA",
-  "SASOU": "Omar GUIDARA",
-  "SATUB": "Omar GUIDARA",
-  "SAUSI": "Omar GUIDARA",
+  "SOPAL GAZ": "Majed FESSI",
+  "AQUAPLAST": "Nihel HAMMAMI",
+  "SANA": "Omar GUIDARA",
   "SGASS": "Amine AYEDI",
-  "WCEM":"Mohamed MAJDOUB",
-  "WCEMC":"Mohamed MAJDOUB",
-  "WCOC":"Mohamed MAJDOUB",
-  "WCUIS":"Mohamed MAJDOUB",
-  "WEM01":"Mohamed MAJDOUB",
-  "WNASS":"Mohamed MAJDOUB",
-  "WNDEC":"Mohamed MAJDOUB",
-  "WNEBV":"Mohamed MAJDOUB",
-  "WNEM1":"Mohamed MAJDOUB",
-  "WNEST":"Mohamed MAJDOUB",
-  "WNLAM":"Mohamed MAJDOUB"
+  "WINOX":"Mohamed MAJDOUB"
 };
   // ===============================
 // 🔐 CONTROLE SESSION UTILISATEUR
@@ -536,12 +511,13 @@ function handleOFKey(event,input){
   const isValid=isExactMatch||isOFInSecondaire||isInEncours;
 
   if(stockEncoursData[encoursKey]!==undefined&&stockEncoursData[encoursKey]<0){
-    remarqueSpan.textContent="⚠️ manque saisie MAG";
+    remarqueSpan.textContent="⚠️ A verifier : manque saisie MAG";
     remarqueSpan.classList.remove("hidden");
   } else {
     remarqueSpan.textContent="";
     remarqueSpan.classList.add("hidden");
   }
+  
 
   updateRemarqueVisibility();
 
@@ -863,6 +839,8 @@ function verifierQuantiteInput(input) {
 
   updateRemarqueVisibility();
 }
+
+
 
 // Attache l'écouteur à toutes les lignes existantes
 function ajouterEcouteQuantiteALignesExistantes() {
@@ -1298,7 +1276,7 @@ function bloquerPage(message) {
         <p>${message}</p>
         <button onclick="window.location.href='index.html'"
           style="padding:10px 20px;font-size:16px;">
-          Retour login
+          Retour Login
         </button>
       </div>
     </div>
