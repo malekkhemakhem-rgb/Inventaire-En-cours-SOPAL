@@ -17,9 +17,7 @@ body::before {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  
-  background-size: cover;
-  filter: blur(20px);
+
   z-index: -1;
 }
 
@@ -680,10 +678,13 @@ document.getElementById('download-sans-of').addEventListener('click', async func
 
   const excelData = Object.values(data).map(item => ({
     Atelier: item.atelier || "",
+    lot: item.lot || "",
+    emplacement: item.emplacement || "",
     CodeArticle: item.codeArticle || "",
     Désignation: item.designation || "",
     Quantité: item.quantite || "",
     Unité: item.unite || "",
+    commentaire: item.commentaire || "",
     Responsable: item.responsable || "",
     Date: item.date || ""
   }));
@@ -698,4 +699,3 @@ document.getElementById('download-sans-of').addEventListener('click', async func
 </script>
 </body>
 </html>
-
