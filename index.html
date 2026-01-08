@@ -74,24 +74,34 @@
 </div>
 
 <script>
+  const APP_VERSION = "2025.02"; 
+  // 🔄 Vérification version (déconnexion globale)
+const savedVersion = localStorage.getItem("app_version");
+
+if (savedVersion !== APP_VERSION) {
+  localStorage.clear();
+  sessionStorage.clear();
+  localStorage.setItem("app_version", APP_VERSION);
+}
+
 // === Base utilisateurs (à compléter avec tous tes responsables) ===
 const utilisateurs = {
-  "Achraf AKROUT":       { password: "12307", ateliers: ["Estampage"] },
-  "Wassim JARRAYA":      { password: "19250", ateliers: ["05"] },
-  "Ali CHAARI":          { password: "01010",    ateliers: ["06"] },
-  "Abderrazek REGAYEG":  { password: "123456",  ateliers: ["07"] },
-  "Amine KAMMOUN":       { password: "06007",  ateliers: ["08"] },
-  "Mohamed FRIKHA":      { password: "03058",ateliers: ["09"] },
-  "Ahmed TURKI":         { password: "133078",  ateliers: ["11"] },
-  "Abdellah BOUAZIZ":    { password: "06041", ateliers: ["13"] },
-  "Abdessalem Ben Elhadj":{ password: "97306500", ateliers: ["16"] },
-  "Seifeddine KRIAA":    { password: "06044",   ateliers: ["17"] },
-  "Tarek LOUATI":        { password: "13082",  ateliers: ["19"] },
-  "Majed FESSI":         { password: "03092",  ateliers: ["SOPAL GAZ"] },
-  "Nihel HAMMAMI":       { password: "21109",  ateliers: ["AQUAPLAST"] },
-  "Omar GUIDARA":        { password: "14289",   ateliers: ["SANA"] },
-  "Amine AYEDI":         { password: "00004", ateliers: ["SGASS"] },
-  "Mohamed MAJDOUB":     { password: "22171", ateliers: ["WINOX"] },
+  "Achraf AKROUT":       { password: "PLN", ateliers: ["Estampage"] },
+  "Wassim JARRAYA":      { password: "PLN", ateliers: ["05"] },
+  "Ali CHAARI":          { password: "PLN",    ateliers: ["06"] },
+  "Abderrazek REGAYEG":  { password: "PLN",  ateliers: ["07"] },
+  "Amine KAMMOUN":       { password: "PLN",  ateliers: ["08"] },
+  "Mohamed FRIKHA":      { password: "PLN",ateliers: ["09"] },
+  "Ahmed TURKI":         { password: "PLN",  ateliers: ["11"] },
+  "Abdellah BOUAZIZ":    { password: "PLN", ateliers: ["13"] },
+  "Abdessalem Ben Elhadj":{ password:"PLN", ateliers: ["16"] },
+  "Seifeddine KRIAA":    { password: "PLN",   ateliers: ["17"] },
+  "Tarek LOUATI":        { password: "PLN",  ateliers: ["19"] },
+  "Majed FESSI":         { password: "PLN",  ateliers: ["SOPAL GAZ"] },
+  "Nihel HAMMAMI":       { password: "PLN",  ateliers: ["AQUAPLAST"] },
+  "Omar GUIDARA":        { password: "PLN",   ateliers: ["SANA"] },
+  "Amine AYEDI":         { password: "PLN", ateliers: ["SGASS"] },
+  "Mohamed MAJDOUB":     { password: "PLN", ateliers: ["WINOX"] },
    "Admin":     { password: "PLN2025", ateliers: ["Estampage","05","06","07","08","09","11","13","16","17","19","SOPAL GAZ","AQUAPLAST","SANA","SGASS","WINOX"]}
   // Ajoute les autres si besoin
 };
@@ -110,10 +120,14 @@ function login() {
 
   if (user && user.password === password) {
     // Sauvegarde en localStorage (session sécurisée)
-    localStorage.setItem("userConnecte", JSON.stringify({
-      nom: username,
-      ateliers: user.ateliers
-    }));
+  localStorage.setItem("userConnecte", JSON.stringify({
+  nom: username,
+  ateliers: user.ateliers,
+  version: APP_VERSION
+}));
+
+localStorage.setItem("app_version", APP_VERSION);
+
     // Redirection vers la fiche
     window.location.href = "inventaire.html";
   } else {

@@ -12,6 +12,7 @@
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="app.js?v=2025.02"></script>
 
 <style>
 @font-face { font-family: 'Arial Narrow'; src: local('Arial Narrow'), local('ArialNarrow'); }
@@ -232,7 +233,13 @@ select{ width:100%; height:100%; border:none; background:transparent; text-align
 </style>
 
 <script>
+const user = JSON.parse(localStorage.getItem("userConnecte"));
 
+if (!user || user.version !== localStorage.getItem("app_version")) {
+  localStorage.clear();
+  window.location.href = "index.html";
+}
+ 
 
 
 // Firebase
